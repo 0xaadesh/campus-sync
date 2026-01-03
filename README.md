@@ -325,6 +325,60 @@ bunx prisma studio         # Open Prisma Studio
 bunx prisma migrate reset  # Reset database (dev only)
 ```
 
+## Deployment
+
+### Deploying to Vercel
+
+1. **Push your code to GitHub**
+
+2. **Import project to Vercel**
+   - Connect your GitHub repository
+   - Vercel will auto-detect Next.js
+
+3. **Set Environment Variables in Vercel**
+   
+   Go to **Settings → Environment Variables** and add:
+   
+   ```env
+   DATABASE_URL="postgresql://user:password@ep-xxx.neon.tech/dbname?sslmode=require"
+   NEXTAUTH_URL="https://your-project.vercel.app"
+   NEXTAUTH_SECRET="your-secret-key-here"
+   ```
+   
+   **Important:**
+   - Replace `your-project.vercel.app` with your actual Vercel deployment URL
+   - Use your Neon database URL (or other PostgreSQL connection string)
+   - Use the same `NEXTAUTH_SECRET` as your local development
+
+4. **Deploy**
+   - Vercel will automatically deploy on push
+   - Or trigger a manual deployment
+
+5. **Post-Deployment**
+   - Run Prisma migrations on your production database:
+     ```bash
+     DATABASE_URL="your-production-db-url" npx prisma migrate deploy
+     ```
+   - Or use Vercel's build command to run migrations automatically
+
+### Environment Variables
+
+**Local Development (.env):**
+```env
+DATABASE_URL="postgresql://user:password@localhost:5432/campus_sync"
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="your-secret-key"
+```
+
+**Production (Vercel Environment Variables):**
+```env
+DATABASE_URL="postgresql://user:password@ep-xxx.neon.tech/dbname?sslmode=require"
+NEXTAUTH_URL="https://your-project.vercel.app"
+NEXTAUTH_SECRET="your-secret-key"
+```
+
+**Note:** Never commit `.env` files to git. Always use Vercel's environment variables for production.
+
 ## Learn More
 
 - [Next.js Documentation](https://nextjs.org/docs)
@@ -334,6 +388,7 @@ bunx prisma migrate reset  # Reset database (dev only)
 - [Tailwind CSS](https://tailwindcss.com)
 - [Framer Motion](https://www.framer.com/motion/)
 - [Three.js](https://threejs.org)
+- [Vercel Deployment](https://vercel.com/docs)
 
 ## License
 
