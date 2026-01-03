@@ -35,7 +35,11 @@ import {
   MapPinIcon,
   BookOpenIcon,
   UserIcon,
+  FileDownIcon,
 } from "lucide-react"
+import { TimetablePDF } from "@/components/timetable-pdf"
+import { pdf } from "@react-pdf/renderer"
+import type { TimetableForPDF } from "@/lib/pdf-timetable"
 
 const DAYS_OF_WEEK: DayOfWeek[] = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"]
 const SHORT_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
@@ -202,6 +206,47 @@ export function TimetablesClient({
     setGroupDialogOpen(true)
   }
 
+  // Handle PDF export
+  const handleExportPDF = async (timetable: Timetable) => {
+    try {
+      // Convert Timetable to TimetableForPDF format
+      const timetableForPDF: TimetableForPDF = {
+        id: timetable.id,
+        name: timetable.name,
+        description: timetable.description,
+        createdBy: timetable.createdBy,
+        createdAt: timetable.createdAt,
+        slots: timetable.slots.map(slot => ({
+          id: slot.id,
+          day: slot.day,
+          startTime: slot.startTime,
+          endTime: slot.endTime,
+          subject: slot.subject,
+          slotType: slot.slotType,
+          room: slot.room,
+          faculty: slot.faculty,
+          batch: slot.batch,
+        })),
+      }
+
+      // Generate PDF blob
+      const blob = await pdf(<TimetablePDF timetable={timetableForPDF} />).toBlob()
+      
+      // Create download link
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement("a")
+      link.href = url
+      link.download = `${timetable.name.replace(/[^a-z0-9]/gi, "-").toLowerCase()}-timetable.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (error) {
+      console.error("Error generating PDF:", error)
+      alert("Failed to generate PDF. Please try again.")
+    }
+  }
+
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6 flex items-center justify-between">
@@ -285,6 +330,10 @@ export function TimetablesClient({
                             <UsersIcon className="mr-2 h-4 w-4" />
                             Manage Groups
                           </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => handleExportPDF(timetable)}>
+                            <FileDownIcon className="mr-2 h-4 w-4" />
+                            Export as PDF
+                          </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             className="text-destructive focus:text-destructive"
@@ -329,12 +378,21 @@ export function TimetablesClient({
                       </CardDescription>
                     )}
                   </div>
-                  {canEdit && (
-                    <Button onClick={handleAddSlot}>
-                      <PlusIcon className="mr-2 h-4 w-4" />
-                      Add Slot
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => handleExportPDF(selectedTimetable)}
+                    >
+                      <FileDownIcon className="mr-2 h-4 w-4" />
+                      Export as PDF
                     </Button>
-                  )}
+                    {canEdit && (
+                      <Button onClick={handleAddSlot}>
+                        <PlusIcon className="mr-2 h-4 w-4" />
+                        Add Slot
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
