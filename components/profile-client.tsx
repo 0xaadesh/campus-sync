@@ -261,7 +261,7 @@ export function ProfileClient({ user, preferences }: ProfileClientProps) {
           </p>
         </div>
 
-        <div className="max-w-2xl space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card>
             <CardHeader>
               <CardTitle>Profile Information</CardTitle>
