@@ -297,18 +297,20 @@ export function TimetablesClient({
                       </DropdownMenu>
                     )}
                   </div>
-                  <div className="flex gap-1 mt-2 flex-wrap">
-                    {timetable.groups.slice(0, 2).map((g) => (
-                      <Badge key={g.id} variant="outline" className="text-xs">
-                        {g.group.title}
-                      </Badge>
-                    ))}
-                    {timetable.groups.length > 2 && (
-                      <Badge variant="outline" className="text-xs">
-                        +{timetable.groups.length - 2} more
-                      </Badge>
-                    )}
-                  </div>
+                  {isHOD && (
+                    <div className="flex gap-1 mt-2 flex-wrap">
+                      {timetable.groups.slice(0, 2).map((g) => (
+                        <Badge key={g.id} variant="outline" className="text-xs">
+                          {g.group.title}
+                        </Badge>
+                      ))}
+                      {timetable.groups.length > 2 && (
+                        <Badge variant="outline" className="text-xs">
+                          +{timetable.groups.length - 2} more
+                        </Badge>
+                      )}
+                    </div>
+                  )}
                 </CardHeader>
               </Card>
             ))}

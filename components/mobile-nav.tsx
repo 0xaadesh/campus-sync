@@ -32,6 +32,11 @@ export function MobileNav({ session }: MobileNavProps) {
       icon: Calendar,
     },
     {
+      title: "Groups",
+      href: "/dashboard/groups",
+      icon: Users,
+    },
+    {
       title: "Availability",
       href: "/dashboard/availability",
       icon: Eye,
@@ -63,11 +68,6 @@ export function MobileNav({ session }: MobileNavProps) {
       title: "Batches",
       href: "/dashboard/batches",
       icon: Layers,
-    },
-    {
-      title: "Groups",
-      href: "/dashboard/groups",
-      icon: Users,
     },
   ]
 
