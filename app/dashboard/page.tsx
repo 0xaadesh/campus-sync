@@ -12,7 +12,7 @@ async function DashboardContent() {
     redirect("/login")
   }
 
-  const { weeklySchedule, todayDate, userName } = await getUserSchedule()
+  const { weeklySchedule, todayDate, userName, slotSummaries } = await getUserSchedule()
 
   return (
     <div className="container mx-auto p-6">
@@ -25,7 +25,7 @@ async function DashboardContent() {
 
       {/* Schedule Section */}
       <div>
-        <ScheduleCarousel weeklySchedule={weeklySchedule} todayDate={todayDate} />
+        <ScheduleCarousel weeklySchedule={weeklySchedule} todayDate={todayDate} slotSummaries={slotSummaries} />
       </div>
     </div>
   )

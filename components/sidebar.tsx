@@ -204,6 +204,20 @@ export function Sidebar({ session, isCollapsed, onToggle, userName, userAvailabi
             <span className="animate-in fade-in duration-200">Availability</span>
           )}
         </Link>
+        <Link
+          href="/dashboard/lecture-summaries"
+          className={cn(
+            "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-200",
+            pathname === "/dashboard/lecture-summaries" &&
+              "bg-sidebar-accent text-sidebar-accent-foreground",
+            isCollapsed && "justify-center"
+          )}
+        >
+          <BookOpen className="h-4 w-4 shrink-0 transition-transform duration-200" />
+          {!isCollapsed && (
+            <span className="animate-in fade-in duration-200">Lecture Summaries</span>
+          )}
+        </Link>
       </nav>
 
       {/* Theme Toggle */}

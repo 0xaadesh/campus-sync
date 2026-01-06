@@ -27,6 +27,7 @@ model User {
   facultySlots     TimeSlot[] @relation("FacultySlots")
   slotTypePreferences SlotTypePreference[]
   batchPreferences    BatchPreference[]
+  lectureSummaries LectureSummary[]
 }
 
 enum Role {
@@ -107,6 +108,7 @@ model TimeSlot {
   batch       Batch?    @relation(fields: [batchId], references: [id])
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  lectureSummaries LectureSummary[]
 }
 
 model TimetableGroup {
@@ -185,5 +187,20 @@ model BatchPreference {
   createdAt DateTime @default(now())
 
   @@unique([userId, batchId])
+}
+
+model LectureSummary {
+  id          String    @id @default(cuid())
+  slotId      String
+  slot        TimeSlot  @relation(fields: [slotId], references: [id], onDelete: Cascade)
+  date        DateTime  @db.Date
+  content     String    @db.Text
+  notes       String?   @db.Text
+  createdById String
+  createdBy   User      @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@unique([slotId, date])
 }
 

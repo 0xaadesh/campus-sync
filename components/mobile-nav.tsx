@@ -32,14 +32,14 @@ export function MobileNav({ session }: MobileNavProps) {
       icon: Calendar,
     },
     {
+      title: "Summaries",
+      href: "/dashboard/lecture-summaries",
+      icon: BookOpen,
+    },
+    {
       title: "Groups",
       href: "/dashboard/groups",
       icon: Users,
-    },
-    {
-      title: "Availability",
-      href: "/dashboard/availability",
-      icon: Eye,
     },
     {
       title: "Profile",

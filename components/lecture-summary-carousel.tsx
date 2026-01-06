@@ -5,14 +5,17 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn, formatTime } from "@/lib/utils"
-import { Calendar, Clock, MapPin, User, BookOpen, Coffee, Layers, ChevronLeft, ChevronRight } from "lucide-react"
-import type { WeeklySchedule, ScheduleSlot } from "@/app/actions/schedule"
+import { Calendar, Clock, MapPin, User, BookOpen, Coffee, Layers, ChevronLeft, ChevronRight, FileText, Plus, Eye, Edit } from "lucide-react"
+import type { LectureSummarySlot } from "@/app/actions/lecture-summaries"
+import { getFacultyScheduleWithSummaries } from "@/app/actions/lecture-summaries"
 import { DayOfWeek } from "@prisma/client"
+import { LectureSummaryDialog } from "@/components/lecture-summary-dialog"
 
-interface ScheduleCarouselProps {
-  weeklySchedule: WeeklySchedule
+interface LectureSummaryCarouselProps {
+  initialSlots: LectureSummarySlot[]
   todayDate: string
-  slotSummaries?: Record<string, string[]> // slotId -> array of date strings with summaries
+  userRole: string
+  canEdit: boolean
 }
 
 const DAY_NAMES: Record<DayOfWeek, string> = {
@@ -71,7 +74,6 @@ function formatDateDisplay(date: Date): string {
   })
 }
 
-// Generate array of dates centered around today
 function generateDates(centerDate: Date, daysBefore: number, daysAfter: number): Date[] {
   const dates: Date[] = []
   for (let i = -daysBefore; i <= daysAfter; i++) {
@@ -80,44 +82,50 @@ function generateDates(centerDate: Date, daysBefore: number, daysAfter: number):
   return dates
 }
 
-export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {} }: ScheduleCarouselProps) {
+export function LectureSummaryCarousel({ initialSlots, todayDate, userRole, canEdit }: LectureSummaryCarouselProps) {
   const today = React.useMemo(() => new Date(todayDate), [todayDate])
   
-  // Track the selected date
   const [selectedDate, setSelectedDate] = React.useState<Date>(today)
-  
-  // Track the visible range center (for infinite scroll)
   const [rangeCenter, setRangeCenter] = React.useState<Date>(today)
+  const [slots, setSlots] = React.useState<LectureSummarySlot[]>(initialSlots)
+  const [isLoading, setIsLoading] = React.useState(false)
+  const [selectedSlot, setSelectedSlot] = React.useState<LectureSummarySlot | null>(null)
+  const [dialogOpen, setDialogOpen] = React.useState(false)
   
-  // Number of days to show before and after the center
   const DAYS_BEFORE = 14
   const DAYS_AFTER = 14
   
-  // Generate visible dates
   const visibleDates = React.useMemo(() => 
     generateDates(rangeCenter, DAYS_BEFORE, DAYS_AFTER),
     [rangeCenter]
   )
   
-  // Find the index of selected date in visible dates
   const selectedIndex = React.useMemo(() => {
     return visibleDates.findIndex(d => isSameDay(d, selectedDate))
   }, [visibleDates, selectedDate])
   
-  // Find today's index in visible dates
-  const todayIndex = React.useMemo(() => {
-    return visibleDates.findIndex(d => isSameDay(d, today))
-  }, [visibleDates, today])
-
-  // Get schedule for selected date
   const selectedDayOfWeek = getDayOfWeek(selectedDate)
-  const currentSlots = weeklySchedule[selectedDayOfWeek] || []
   const isToday = isSameDay(selectedDate, today)
-  
-  // Get selected date as YYYY-MM-DD string for summary checking (use local date, not UTC)
-  const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
+  const selectedDateStr = selectedDate.toISOString().split('T')[0]
 
-  // Handle navigation
+  // Fetch slots when date changes
+  const fetchSlots = React.useCallback(async (date: Date) => {
+    setIsLoading(true)
+    try {
+      const dateStr = date.toISOString().split('T')[0]
+      const result = await getFacultyScheduleWithSummaries(dateStr)
+      setSlots(result.slots)
+    } catch (error) {
+      console.error("Failed to fetch slots:", error)
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  React.useEffect(() => {
+    fetchSlots(selectedDate)
+  }, [selectedDate, fetchSlots])
+
   const handlePrevious = () => {
     const newCenter = addDays(rangeCenter, -7)
     setRangeCenter(newCenter)
@@ -131,7 +139,6 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date)
     
-    // If selecting near edges, shift the range
     const dateIndex = visibleDates.findIndex(d => isSameDay(d, date))
     if (dateIndex <= 3) {
       setRangeCenter(addDays(rangeCenter, -7))
@@ -145,7 +152,20 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
     setRangeCenter(today)
   }
 
-  // Scroll container ref for centering selected date
+  const handleOpenDialog = (slot: LectureSummarySlot) => {
+    setSelectedSlot(slot)
+    setDialogOpen(true)
+  }
+
+  const handleDialogClose = () => {
+    setDialogOpen(false)
+    setSelectedSlot(null)
+  }
+
+  const handleSaved = () => {
+    fetchSlots(selectedDate)
+  }
+
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
   
   React.useEffect(() => {
@@ -183,7 +203,7 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
           >
             <div className="flex gap-2 px-1 py-1">
-              {visibleDates.map((date, index) => {
+              {visibleDates.map((date) => {
                 const dayOfWeek = getDayOfWeek(date)
                 const isSelected = isSameDay(date, selectedDate)
                 const isCurrentDay = isSameDay(date, today)
@@ -227,7 +247,6 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
           </Button>
         </div>
         
-        {/* Go to Today button */}
         {!isToday && (
           <div className="flex justify-center mt-2">
             <Button
@@ -260,22 +279,46 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
         </span>
       </div>
 
+      {/* Role Info */}
+      <div className="rounded-lg border p-3 bg-muted/30">
+        <p className="text-sm text-muted-foreground">
+          {canEdit ? (
+            <>
+              <FileText className="h-4 w-4 inline mr-2" />
+              You can add or edit summaries for your assigned lectures below.
+            </>
+          ) : (
+            <>
+              <Eye className="h-4 w-4 inline mr-2" />
+              View lecture summaries shared by your faculty. Click on a summarized slot to view details.
+            </>
+          )}
+        </p>
+      </div>
+
       {/* Schedule Cards */}
       <div className="space-y-3">
-        {currentSlots.length === 0 ? (
+        {isLoading ? (
+          <Card>
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              <div className="animate-spin h-8 w-8 border-2 border-primary border-t-transparent rounded-full mb-4" />
+              <p className="text-sm text-muted-foreground">Loading schedule...</p>
+            </CardContent>
+          </Card>
+        ) : slots.length === 0 ? (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12 text-center">
               <Coffee className="h-12 w-12 text-muted-foreground/50 mb-4" />
-              <p className="text-lg font-medium text-muted-foreground">No classes scheduled</p>
-              <p className="text-sm text-muted-foreground/70">Enjoy your day off!</p>
+              <p className="text-lg font-medium text-muted-foreground">
+                {canEdit ? "No lectures assigned to you" : "No lectures scheduled"}
+              </p>
+              <p className="text-sm text-muted-foreground/70">
+                {canEdit ? "You don't have any lectures on this day." : "Enjoy your day off!"}
+              </p>
             </CardContent>
           </Card>
         ) : (
-          currentSlots.map((slot) => {
-            // Check if this slot has a summary for the selected date
-            const hasSummary = slotSummaries[slot.id]?.includes(selectedDateStr)
-            
-            return (
+          slots.map((slot) => (
             <Card 
               key={slot.id} 
               className={cn(
@@ -298,7 +341,7 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
                         {slot.batchName}
                       </Badge>
                     )}
-                    {hasSummary && (
+                    {slot.summary && (
                       <Badge variant="success" className="shrink-0">
                         Summarized
                       </Badge>
@@ -317,7 +360,7 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
                     <span className="text-sm">Break Time</span>
                   </div>
                 ) : (
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     {slot.subjectName && (
                       <div className="flex items-center gap-2">
                         <BookOpen className="h-4 w-4 text-muted-foreground" />
@@ -343,13 +386,61 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
                         </div>
                       )}
                     </div>
+                    
+                    {/* Action Button */}
+                    <div className="pt-2">
+                      {canEdit ? (
+                        <Button
+                          variant={slot.summary ? "outline" : "default"}
+                          size="sm"
+                          onClick={() => handleOpenDialog(slot)}
+                        >
+                          {slot.summary ? (
+                            <>
+                              <Edit className="h-4 w-4 mr-2" />
+                              Edit Summary
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-4 w-4 mr-2" />
+                              Add Summary
+                            </>
+                          )}
+                        </Button>
+                      ) : slot.summary ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleOpenDialog(slot)}
+                        >
+                          <Eye className="h-4 w-4 mr-2" />
+                          View Summary
+                        </Button>
+                      ) : (
+                        <p className="text-xs text-muted-foreground italic">
+                          No summary available yet
+                        </p>
+                      )}
+                    </div>
                   </div>
                 )}
               </CardContent>
             </Card>
-          )})
+          ))
         )}
       </div>
+
+      {/* Summary Dialog */}
+      {selectedSlot && (
+        <LectureSummaryDialog
+          open={dialogOpen}
+          onOpenChange={handleDialogClose}
+          slot={selectedSlot}
+          selectedDate={selectedDateStr}
+          canEdit={canEdit}
+          onSaved={handleSaved}
+        />
+      )}
     </div>
   )
 }

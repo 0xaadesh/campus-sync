@@ -17,6 +17,7 @@ export interface ScheduleSlot {
   facultyName: string | null
   batchName: string | null
   isBreak: boolean
+  hasSummary?: boolean
 }
 
 // Slots grouped by day of week (weekly template)
@@ -59,6 +60,7 @@ export async function getUserSchedule(): Promise<{
   todayDate: string
   userName: string
   userRole: string
+  slotSummaries: Record<string, string[]> // slotId -> array of ISO date strings with summaries
 }> {
   const session = await auth()
   
@@ -67,7 +69,7 @@ export async function getUserSchedule(): Promise<{
       Monday: [], Tuesday: [], Wednesday: [], Thursday: [],
       Friday: [], Saturday: [], Sunday: []
     }
-    return { weeklySchedule: emptySchedule, todayDate: new Date().toISOString(), userName: "", userRole: "" }
+    return { weeklySchedule: emptySchedule, todayDate: new Date().toISOString(), userName: "", userRole: "", slotSummaries: {} }
   }
 
   const userId = session.user.id
@@ -173,6 +175,41 @@ export async function getUserSchedule(): Promise<{
     allSlots = Array.from(slotsMap.values())
   }
 
+  // Get all slot IDs
+  const slotIds = allSlots.map(s => s.id)
+  
+  // Fetch summaries for all slots (for the next 30 days range)
+  const thirtyDaysAgo = new Date(today)
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+  const thirtyDaysFromNow = new Date(today)
+  thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
+  
+  const summaries = slotIds.length > 0 ? await prisma.lectureSummary.findMany({
+    where: {
+      slotId: { in: slotIds },
+      date: {
+        gte: thirtyDaysAgo,
+        lte: thirtyDaysFromNow
+      }
+    },
+    select: {
+      slotId: true,
+      date: true
+    }
+  }) : []
+  
+  // Build a map of slotId -> array of date strings (YYYY-MM-DD in local time)
+  const slotSummaries: Record<string, string[]> = {}
+  for (const summary of summaries) {
+    if (!slotSummaries[summary.slotId]) {
+      slotSummaries[summary.slotId] = []
+    }
+    // Use local date format to avoid timezone issues
+    const d = summary.date
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    slotSummaries[summary.slotId].push(dateStr)
+  }
+
   // Group slots by day of week (weekly template)
   const weeklySchedule: WeeklySchedule = {
     Monday: [],
@@ -197,6 +234,7 @@ export async function getUserSchedule(): Promise<{
     weeklySchedule,
     todayDate: today.toISOString(),
     userName: user?.name || session.user.name || "",
-    userRole
+    userRole,
+    slotSummaries
   }
 }
