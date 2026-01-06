@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Hero } from "@/components/ui/hero"
 import { FeaturesSectionWithHoverEffects } from "@/components/ui/feature-section-with-hover-effects"
 import { TestimonialsSection } from "@/components/ui/testimonials-with-marquee"
-import { ShaderAnimation } from "@/components/ui/shader-animation"
 import { LandingPageWrapper } from "@/components/landing-page-wrapper"
 import { 
   Calendar, 
@@ -23,7 +22,7 @@ export default async function LandingPage() {
 
   return (
     <LandingPageWrapper>
-      <div className="dark min-h-screen bg-gradient-to-b from-background to-muted/30">
+      <div className="min-h-screen bg-linear-to-b from-background to-muted/30">
       {/* Header */}
       <header className="border-b bg-background/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-6 py-4 flex items-center justify-between">
@@ -149,11 +148,10 @@ export default async function LandingPage() {
       />
 
       {/* CTA Section */}
-      <section className="relative w-full overflow-hidden py-16 md:py-24">
-        <ShaderAnimation />
-        <div className="relative z-10 container mx-auto px-6 text-center">
-          <h2 className="text-3xl font-bold mb-4 text-white">Ready to get started?</h2>
-          <p className="text-white/80 mb-8 max-w-xl mx-auto">
+      <section className="relative w-full overflow-hidden py-16 md:py-24 bg-linear-to-r from-primary/10 via-primary/5 to-primary/10 dark:from-primary/40 dark:via-primary/30 dark:to-primary/40 animate-cta-gradient">
+        <div className="relative z-10 container mx-auto px-6 text-center text-foreground">
+          <h2 className="text-3xl font-bold mb-4">Ready to get started?</h2>
+          <p className="text-muted-foreground mb-8 max-w-xl mx-auto">
             Join CampusSync today and transform how your campus manages schedules.
           </p>
           {session ? (
