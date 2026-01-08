@@ -138,4 +138,19 @@
   .animate-marquee {
     animation: marquee var(--duration, 40s) linear infinite;
   }
+
+  /* Subtle CTA gradient drift */
+  @keyframes cta-gradient-pan {
+    0% {
+      background-position: 0% 50%;
+    }
+    100% {
+      background-position: 100% 50%;
+    }
+  }
+
+  .animate-cta-gradient {
+    background-size: 200% 200%;
+    animation: cta-gradient-pan 18s ease-in-out infinite alternate;
+  }
 }
