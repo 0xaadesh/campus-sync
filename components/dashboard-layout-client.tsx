@@ -68,7 +68,12 @@ export function DashboardLayoutClient({
       </div>
 
       {/* Mobile Bottom Nav */}
-      <MobileBottomNav />
+      <MobileBottomNav
+        session={session}
+        userName={userName}
+        userAvailability={userAvailability}
+        userStatus={userStatus}
+      />
     </div>
   )
 }
