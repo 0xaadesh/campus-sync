@@ -64,7 +64,29 @@ A comprehensive campus management system built with Next.js 16, Prisma 5, NextAu
   - Assign batches to time slots
   - Filter schedules by batches
 
-### 👤 User Features
+### � Calendar Management
+
+- **Create & Manage Calendars**
+  - Create calendars for academic events
+  - Assign calendars to groups
+  - Full CRUD operations for HOD
+
+- **Event Management**
+  - Add events with start/end dates
+  - Categorize events by type (Exam, Holiday, Deadline, etc.)
+  - Multi-day event support
+  - Color-coded event types
+
+- **Event Types**
+  - Create custom event types
+  - Consistent color coding using hash-based assignment
+
+- **Role-Based Permissions**
+  - HOD: Full access to all calendars
+  - Faculty Editors: Can add/edit events in assigned calendars
+  - Students: View-only access (no editing)
+
+### �👤 User Features
 
 - **Availability Tracking**
   - Set availability status (Active, Away, Busy)

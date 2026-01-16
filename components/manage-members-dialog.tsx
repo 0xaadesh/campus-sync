@@ -255,25 +255,31 @@ export function ManageMembersDialog({
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2 ml-2">
-                    <Select
-                      value={member.role}
-                      onValueChange={(value) =>
-                        handleRoleChange(member.id, value as GroupRole)
-                      }
-                      disabled={updatingId === member.id || removingId === member.id}
-                    >
-                      <SelectTrigger className="w-24">
-                        {updatingId === member.id ? (
-                          <Spinner size="sm" />
-                        ) : (
-                          <SelectValue />
-                        )}
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Viewer">Viewer</SelectItem>
-                        <SelectItem value="Editor">Editor</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    {member.user.role === "Student" ? (
+                      <Badge variant="secondary" className="w-24 justify-center">
+                        Viewer
+                      </Badge>
+                    ) : (
+                      <Select
+                        value={member.role}
+                        onValueChange={(value) =>
+                          handleRoleChange(member.id, value as GroupRole)
+                        }
+                        disabled={updatingId === member.id || removingId === member.id}
+                      >
+                        <SelectTrigger className="w-24">
+                          {updatingId === member.id ? (
+                            <Spinner size="sm" />
+                          ) : (
+                            <SelectValue />
+                          )}
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Viewer">Viewer</SelectItem>
+                          <SelectItem value="Editor">Editor</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
                     <Button
                       variant="ghost"
                       size="icon"

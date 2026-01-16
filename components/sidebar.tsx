@@ -3,7 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, ChevronLeft, ChevronRight, BookOpen, DoorOpen, Clock, Users, CalendarDays, Layers, LogOut, Eye } from "lucide-react"
+import { LayoutDashboard, ChevronLeft, ChevronRight, BookOpen, DoorOpen, Clock, Users, CalendarDays, Calendar, Layers, LogOut, Eye, Tag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -157,6 +157,20 @@ export function Sidebar({ session, isCollapsed, onToggle, userName, userAvailabi
                 <span className="animate-in fade-in duration-200">Batches</span>
               )}
             </Link>
+            <Link
+              href="/dashboard/event-types"
+              className={cn(
+                "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-200",
+                pathname === "/dashboard/event-types" &&
+                  "bg-sidebar-accent text-sidebar-accent-foreground",
+                isCollapsed && "justify-center"
+              )}
+            >
+              <Tag className="h-4 w-4 shrink-0 transition-transform duration-200" />
+              {!isCollapsed && (
+                <span className="animate-in fade-in duration-200">Event Types</span>
+              )}
+            </Link>
           </>
         )}
 
@@ -174,6 +188,20 @@ export function Sidebar({ session, isCollapsed, onToggle, userName, userAvailabi
           <CalendarDays className="h-4 w-4 shrink-0 transition-transform duration-200" />
           {!isCollapsed && (
             <span className="animate-in fade-in duration-200">Timetables</span>
+          )}
+        </Link>
+        <Link
+          href="/dashboard/calendars"
+          className={cn(
+            "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-200",
+            pathname === "/dashboard/calendars" &&
+              "bg-sidebar-accent text-sidebar-accent-foreground",
+            isCollapsed && "justify-center"
+          )}
+        >
+          <Calendar className="h-4 w-4 shrink-0 transition-transform duration-200" />
+          {!isCollapsed && (
+            <span className="animate-in fade-in duration-200">Calendars</span>
           )}
         </Link>
         <Link
