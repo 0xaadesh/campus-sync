@@ -43,6 +43,14 @@ const DAY_ABBREV: Record<DayOfWeek, string> = {
   Sunday: "Sun"
 }
 
+// Get today's day of week
+function getTodayDayOfWeek(): DayOfWeek {
+  const dayIndex = new Date().getDay()
+  // getDay() returns 0 for Sunday, 1 for Monday, etc.
+  const mapping: DayOfWeek[] = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"]
+  return mapping[dayIndex]
+}
+
 function getAvailabilityColor(availability: "Active" | "Away" | "Busy") {
   switch (availability) {
     case "Active": return "bg-green-500"
@@ -61,7 +69,7 @@ function getAvailabilityBadgeVariant(availability: "Active" | "Away" | "Busy") {
 
 function FacultyAvatar({ faculty, size = "md" }: { faculty: FacultyInfo; size?: "sm" | "md" }) {
   const sizeClasses = size === "sm" ? "h-8 w-8 text-xs" : "h-10 w-10 text-sm"
-  
+
   return (
     <div className="relative">
       <div className={cn(
@@ -70,35 +78,31 @@ function FacultyAvatar({ faculty, size = "md" }: { faculty: FacultyInfo; size?: 
       )}>
         {faculty.name.charAt(0).toUpperCase()}
       </div>
-      <span 
+      <span
         className={cn(
           "absolute bottom-0 right-0 rounded-full border-2 border-background",
           size === "sm" ? "h-2.5 w-2.5" : "h-3 w-3",
           getAvailabilityColor(faculty.availability)
-        )} 
+        )}
       />
     </div>
   )
 }
 
 function FacultyWiseView({ data }: { data: FacultyWithSlots[] }) {
-  const [selectedDay, setSelectedDay] = React.useState<DayOfWeek | "all">("all")
+  const [selectedDay, setSelectedDay] = React.useState<DayOfWeek>(getTodayDayOfWeek)
   const [showOccupied, setShowOccupied] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
 
   const filteredData = data
-    .filter(faculty => 
+    .filter(faculty =>
       faculty.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       faculty.email.toLowerCase().includes(searchQuery.toLowerCase())
     )
     .map(faculty => ({
       ...faculty,
-      occupiedSlots: selectedDay === "all" 
-        ? faculty.occupiedSlots 
-        : faculty.occupiedSlots.filter(s => s.day === selectedDay),
-      freeSlots: selectedDay === "all"
-        ? faculty.freeSlots
-        : faculty.freeSlots.filter(s => s.day === selectedDay)
+      occupiedSlots: faculty.occupiedSlots.filter(s => s.day === selectedDay),
+      freeSlots: faculty.freeSlots.filter(s => s.day === selectedDay)
     }))
 
   // Helper to format slot badge text
@@ -129,13 +133,6 @@ function FacultyWiseView({ data }: { data: FacultyWithSlots[] }) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         {/* Day filter */}
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant={selectedDay === "all" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedDay("all")}
-          >
-            All Days
-          </Button>
           {DAYS.map(day => (
             <Button
               key={day}
@@ -168,7 +165,7 @@ function FacultyWiseView({ data }: { data: FacultyWithSlots[] }) {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredData.map(faculty => {
           const slots = showOccupied ? faculty.occupiedSlots : faculty.freeSlots
-          
+
           return (
             <Card key={faculty.id}>
               <CardHeader className="pb-3">
@@ -193,7 +190,7 @@ function FacultyWiseView({ data }: { data: FacultyWithSlots[] }) {
               <CardContent>
                 {slots.length === 0 ? (
                   <p className="text-muted-foreground text-sm">
-                    No {showOccupied ? "occupied" : "free"} slots {selectedDay !== "all" ? `on ${selectedDay}` : ""}
+                    No {showOccupied ? "occupied" : "free"} slots on {selectedDay}
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -205,17 +202,17 @@ function FacultyWiseView({ data }: { data: FacultyWithSlots[] }) {
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {slots.map(slot => (
-                        <Badge 
-                          key={slot.id} 
+                        <Badge
+                          key={slot.id}
                           variant={showOccupied ? "outline" : "secondary"}
                           className={cn(
                             "text-xs",
                             !showOccupied && "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
                           )}
                         >
-                          {showOccupied 
-                            ? formatSlotBadge(slot, selectedDay === "all")
-                            : `${selectedDay === "all" ? DAY_ABBREV[slot.day] + " · " : ""}${formatTime(slot.startTime)}-${formatTime(slot.endTime)}`
+                          {showOccupied
+                            ? formatSlotBadge(slot, false)
+                            : `${formatTime(slot.startTime)}-${formatTime(slot.endTime)}`
                           }
                         </Badge>
                       ))}
@@ -233,7 +230,7 @@ function FacultyWiseView({ data }: { data: FacultyWithSlots[] }) {
 
 function SlotWiseFacultyView({ data }: { data: SlotWithFreeFaculty[] }) {
   const [selectedDay, setSelectedDay] = React.useState<DayOfWeek>("Monday")
-  
+
   const slotsForDay = data.filter(s => s.day === selectedDay)
 
   return (
@@ -320,22 +317,18 @@ function SlotWiseFacultyView({ data }: { data: SlotWithFreeFaculty[] }) {
 }
 
 function RoomWiseView({ data }: { data: RoomWithSlots[] }) {
-  const [selectedDay, setSelectedDay] = React.useState<DayOfWeek | "all">("all")
+  const [selectedDay, setSelectedDay] = React.useState<DayOfWeek>(getTodayDayOfWeek)
   const [showOccupied, setShowOccupied] = React.useState(false)
   const [searchQuery, setSearchQuery] = React.useState("")
 
   const filteredData = data
-    .filter(room => 
+    .filter(room =>
       room.number.toLowerCase().includes(searchQuery.toLowerCase())
     )
     .map(room => ({
       ...room,
-      occupiedSlots: selectedDay === "all" 
-        ? room.occupiedSlots 
-        : room.occupiedSlots.filter(s => s.day === selectedDay),
-      freeSlots: selectedDay === "all"
-        ? room.freeSlots
-        : room.freeSlots.filter(s => s.day === selectedDay)
+      occupiedSlots: room.occupiedSlots.filter(s => s.day === selectedDay),
+      freeSlots: room.freeSlots.filter(s => s.day === selectedDay)
     }))
 
   // Helper to format slot badge text for rooms
@@ -365,13 +358,6 @@ function RoomWiseView({ data }: { data: RoomWithSlots[] }) {
       <div className="flex flex-wrap items-center justify-between gap-4">
         {/* Day filter */}
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant={selectedDay === "all" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSelectedDay("all")}
-          >
-            All Days
-          </Button>
           {DAYS.map(day => (
             <Button
               key={day}
@@ -404,7 +390,7 @@ function RoomWiseView({ data }: { data: RoomWithSlots[] }) {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {filteredData.map(room => {
           const slots = showOccupied ? room.occupiedSlots : room.freeSlots
-          
+
           return (
             <Card key={room.id}>
               <CardHeader className="pb-3">
@@ -423,7 +409,7 @@ function RoomWiseView({ data }: { data: RoomWithSlots[] }) {
               <CardContent>
                 {slots.length === 0 ? (
                   <p className="text-muted-foreground text-sm">
-                    No {showOccupied ? "occupied" : "free"} slots {selectedDay !== "all" ? `on ${selectedDay}` : ""}
+                    No {showOccupied ? "occupied" : "free"} slots on {selectedDay}
                   </p>
                 ) : (
                   <div className="space-y-2">
@@ -435,17 +421,17 @@ function RoomWiseView({ data }: { data: RoomWithSlots[] }) {
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {slots.map(slot => (
-                        <Badge 
-                          key={slot.id} 
+                        <Badge
+                          key={slot.id}
                           variant={showOccupied ? "outline" : "secondary"}
                           className={cn(
                             "text-xs",
                             !showOccupied && "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400"
                           )}
                         >
-                          {showOccupied 
-                            ? formatRoomSlotBadge(slot, selectedDay === "all")
-                            : `${selectedDay === "all" ? DAY_ABBREV[slot.day] + " · " : ""}${formatTime(slot.startTime)}-${formatTime(slot.endTime)}`
+                          {showOccupied
+                            ? formatRoomSlotBadge(slot, false)
+                            : `${formatTime(slot.startTime)}-${formatTime(slot.endTime)}`
                           }
                         </Badge>
                       ))}
@@ -463,7 +449,7 @@ function RoomWiseView({ data }: { data: RoomWithSlots[] }) {
 
 function SlotWiseRoomView({ data }: { data: SlotWithFreeRooms[] }) {
   const [selectedDay, setSelectedDay] = React.useState<DayOfWeek>("Monday")
-  
+
   const slotsForDay = data.filter(s => s.day === selectedDay)
 
   return (

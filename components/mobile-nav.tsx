@@ -7,6 +7,7 @@ import {
   Activity,
   BookOpen,
   Calendar,
+  CalendarCheck,
   Clock,
   DoorOpen,
   Layers,
@@ -37,12 +38,12 @@ export const primaryNavItems: readonly NavItem[] = [
   {
     title: "Timetables",
     href: "/dashboard/timetables",
-    icon: Calendar,
+    icon: Clock,
   },
   {
-    title: "Groups",
-    href: "/dashboard/groups",
-    icon: Users,
+    title: "Calendars",
+    href: "/dashboard/calendars",
+    icon: Calendar,
   },
   {
     title: "Availability",
@@ -52,6 +53,11 @@ export const primaryNavItems: readonly NavItem[] = [
 ] as const
 
 export const moreNavItems: readonly NavItem[] = [
+  {
+    title: "Groups",
+    href: "/dashboard/groups",
+    icon: Users,
+  },
   {
     title: "Lecture Summaries",
     href: "/dashboard/lecture-summaries",
@@ -79,6 +85,11 @@ export const hodConfigItems: readonly NavItem[] = [
     title: "Batches",
     href: "/dashboard/batches",
     icon: Layers,
+  },
+  {
+    title: "Event Types",
+    href: "/dashboard/event-types",
+    icon: CalendarCheck,
   },
 ] as const
 

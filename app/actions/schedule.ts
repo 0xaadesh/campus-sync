@@ -29,9 +29,19 @@ export interface DaySchedule {
   slots: ScheduleSlot[]
 }
 
+// Calendar event for display on dashboard
+export interface DayEvent {
+  id: string
+  title: string
+  description: string | null
+  eventTypeName: string
+  startDate: string  // ISO date string
+  endDate: string | null  // ISO date string
+}
+
 const DAYS_ORDER: DayOfWeek[] = [
   "Monday",
-  "Tuesday", 
+  "Tuesday",
   "Wednesday",
   "Thursday",
   "Friday",
@@ -61,15 +71,16 @@ export async function getUserSchedule(): Promise<{
   userName: string
   userRole: string
   slotSummaries: Record<string, string[]> // slotId -> array of ISO date strings with summaries
+  dayEvents: Record<string, DayEvent[]> // date string (YYYY-MM-DD) -> events for that date
 }> {
   const session = await auth()
-  
+
   if (!session?.user?.id) {
     const emptySchedule: WeeklySchedule = {
       Monday: [], Tuesday: [], Wednesday: [], Thursday: [],
       Friday: [], Saturday: [], Sunday: []
     }
-    return { weeklySchedule: emptySchedule, todayDate: new Date().toISOString(), userName: "", userRole: "", slotSummaries: {} }
+    return { weeklySchedule: emptySchedule, todayDate: new Date().toISOString(), userName: "", userRole: "", slotSummaries: {}, dayEvents: {} }
   }
 
   const userId = session.user.id
@@ -123,19 +134,19 @@ export async function getUserSchedule(): Promise<{
     // Get student preferences for filtering (only for students)
     let enabledSlotTypeIds: string[] | null = null
     let selectedBatchIds: string[] | null = null
-    
+
     if (userRole === "Student") {
       const prefs = await getActivePreferences(userId)
       enabledSlotTypeIds = prefs.enabledSlotTypeIds
       selectedBatchIds = prefs.selectedBatchIds
     }
-    
+
     for (const tg of timetableGroups) {
       for (const slot of tg.timetable.slots) {
         // For faculty/HOD, only show slots where they are assigned
         // For students, apply preference filters
         let shouldInclude = true
-        
+
         if (userRole === "HOD" || userRole === "Faculty") {
           shouldInclude = slot.facultyId === userId
         } else {
@@ -144,7 +155,7 @@ export async function getUserSchedule(): Promise<{
           if (enabledSlotTypeIds !== null && !enabledSlotTypeIds.includes(slot.slotTypeId)) {
             shouldInclude = false
           }
-          
+
           // Check batch preference (if user has batch preferences set)
           // Only filter if the slot has a batch AND user has batch preferences
           if (shouldInclude && selectedBatchIds !== null && slot.batchId) {
@@ -177,13 +188,13 @@ export async function getUserSchedule(): Promise<{
 
   // Get all slot IDs
   const slotIds = allSlots.map(s => s.id)
-  
+
   // Fetch summaries for all slots (for the next 30 days range)
   const thirtyDaysAgo = new Date(today)
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
   const thirtyDaysFromNow = new Date(today)
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30)
-  
+
   const summaries = slotIds.length > 0 ? await prisma.lectureSummary.findMany({
     where: {
       slotId: { in: slotIds },
@@ -197,7 +208,7 @@ export async function getUserSchedule(): Promise<{
       date: true
     }
   }) : []
-  
+
   // Build a map of slotId -> array of date strings (YYYY-MM-DD in UTC)
   const slotSummaries: Record<string, string[]> = {}
   for (const summary of summaries) {
@@ -230,11 +241,80 @@ export async function getUserSchedule(): Promise<{
     weeklySchedule[day].sort((a, b) => a.startTime.localeCompare(b.startTime))
   }
 
+  // Fetch calendar events for user
+  // HOD sees all calendars, others only see calendars assigned to their groups
+  const dayEvents: Record<string, DayEvent[]> = {}
+
+  // Build the where clause based on user role
+  const calendarWhereClause = userRole === "HOD"
+    ? {} // HOD sees all calendars
+    : groupIds.length > 0
+      ? { groups: { some: { groupId: { in: groupIds } } } }
+      : null // No groups = no calendars for non-HOD
+
+  if (calendarWhereClause !== null) {
+    const calendarEvents = await prisma.calendarEvent.findMany({
+      where: {
+        ...(Object.keys(calendarWhereClause).length > 0 && { calendar: calendarWhereClause }),
+        OR: [
+          // Events that start within range
+          {
+            startDate: {
+              gte: thirtyDaysAgo,
+              lte: thirtyDaysFromNow
+            }
+          },
+          // Multi-day events that span the range
+          {
+            startDate: { lte: thirtyDaysFromNow },
+            endDate: { gte: thirtyDaysAgo }
+          }
+        ]
+      },
+      include: {
+        eventType: { select: { name: true } }
+      },
+      orderBy: { startDate: 'asc' }
+    })
+
+    // Map events to their dates
+    for (const event of calendarEvents) {
+      const startDate = new Date(event.startDate)
+      const endDate = event.endDate ? new Date(event.endDate) : startDate
+
+      // For each day the event spans, add it to that day's events
+      const currentDate = new Date(startDate)
+      while (currentDate <= endDate && currentDate <= thirtyDaysFromNow) {
+        if (currentDate >= thirtyDaysAgo) {
+          const dateStr = `${currentDate.getUTCFullYear()}-${String(currentDate.getUTCMonth() + 1).padStart(2, '0')}-${String(currentDate.getUTCDate()).padStart(2, '0')}`
+
+          if (!dayEvents[dateStr]) {
+            dayEvents[dateStr] = []
+          }
+
+          // Avoid duplicates
+          if (!dayEvents[dateStr].some(e => e.id === event.id)) {
+            dayEvents[dateStr].push({
+              id: event.id,
+              title: event.title,
+              description: event.description,
+              eventTypeName: event.eventType.name,
+              startDate: event.startDate.toISOString(),
+              endDate: event.endDate?.toISOString() || null
+            })
+          }
+        }
+        currentDate.setUTCDate(currentDate.getUTCDate() + 1)
+      }
+    }
+  }
+
   return {
     weeklySchedule,
     todayDate: today.toISOString(),
     userName: user?.name || session.user.name || "",
     userRole,
-    slotSummaries
+    slotSummaries,
+    dayEvents
   }
 }

@@ -5,14 +5,15 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn, formatTime } from "@/lib/utils"
-import { Calendar, Clock, MapPin, User, BookOpen, Coffee, Layers, ChevronLeft, ChevronRight } from "lucide-react"
-import type { WeeklySchedule, ScheduleSlot } from "@/app/actions/schedule"
+import { Calendar, Clock, MapPin, User, BookOpen, Coffee, Layers, ChevronLeft, ChevronRight, CalendarDays, PartyPopper } from "lucide-react"
+import type { WeeklySchedule, ScheduleSlot, DayEvent } from "@/app/actions/schedule"
 import { DayOfWeek } from "@prisma/client"
 
 interface ScheduleCarouselProps {
   weeklySchedule: WeeklySchedule
   todayDate: string
   slotSummaries?: Record<string, string[]> // slotId -> array of date strings with summaries
+  dayEvents?: Record<string, DayEvent[]> // date string -> events for that date
 }
 
 const DAY_NAMES: Record<DayOfWeek, string> = {
@@ -80,30 +81,30 @@ function generateDates(centerDate: Date, daysBefore: number, daysAfter: number):
   return dates
 }
 
-export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {} }: ScheduleCarouselProps) {
+export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}, dayEvents = {} }: ScheduleCarouselProps) {
   const today = React.useMemo(() => new Date(todayDate), [todayDate])
-  
+
   // Track the selected date
   const [selectedDate, setSelectedDate] = React.useState<Date>(today)
-  
+
   // Track the visible range center (for infinite scroll)
   const [rangeCenter, setRangeCenter] = React.useState<Date>(today)
-  
+
   // Number of days to show before and after the center
   const DAYS_BEFORE = 14
   const DAYS_AFTER = 14
-  
+
   // Generate visible dates
-  const visibleDates = React.useMemo(() => 
+  const visibleDates = React.useMemo(() =>
     generateDates(rangeCenter, DAYS_BEFORE, DAYS_AFTER),
     [rangeCenter]
   )
-  
+
   // Find the index of selected date in visible dates
   const selectedIndex = React.useMemo(() => {
     return visibleDates.findIndex(d => isSameDay(d, selectedDate))
   }, [visibleDates, selectedDate])
-  
+
   // Find today's index in visible dates
   const todayIndex = React.useMemo(() => {
     return visibleDates.findIndex(d => isSameDay(d, today))
@@ -113,7 +114,7 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
   const selectedDayOfWeek = getDayOfWeek(selectedDate)
   const currentSlots = weeklySchedule[selectedDayOfWeek] || []
   const isToday = isSameDay(selectedDate, today)
-  
+
   // Get selected date as YYYY-MM-DD string (use local date components for display consistency)
   // Note: This is matched against UTC dates from server, so we use local date which represents user's intended date
   const selectedDateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
@@ -131,7 +132,7 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
 
   const handleDateSelect = (date: Date) => {
     setSelectedDate(date)
-    
+
     // If selecting near edges, shift the range
     const dateIndex = visibleDates.findIndex(d => isSameDay(d, date))
     if (dateIndex <= 3) {
@@ -148,7 +149,7 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
 
   // Scroll container ref for centering selected date
   const scrollContainerRef = React.useRef<HTMLDivElement>(null)
-  
+
   React.useEffect(() => {
     if (scrollContainerRef.current && selectedIndex >= 0) {
       const container = scrollContainerRef.current
@@ -177,8 +178,8 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
           >
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          
-          <div 
+
+          <div
             ref={scrollContainerRef}
             className="flex-1 overflow-x-auto scrollbar-hide"
             style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
@@ -188,7 +189,7 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
                 const dayOfWeek = getDayOfWeek(date)
                 const isSelected = isSameDay(date, selectedDate)
                 const isCurrentDay = isSameDay(date, today)
-                
+
                 return (
                   <button
                     key={date.toISOString()}
@@ -217,7 +218,7 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
               })}
             </div>
           </div>
-          
+
           <Button
             variant="outline"
             size="icon"
@@ -227,7 +228,7 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
-        
+
         {/* Go to Today button */}
         {!isToday && (
           <div className="flex justify-center mt-2">
@@ -261,6 +262,59 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
         </span>
       </div>
 
+      {/* Calendar Events for Selected Day */}
+      {(() => {
+        const events = dayEvents[selectedDateStr] || []
+        if (events.length === 0) return null
+
+        // Separate holiday events from other events
+        const holidayEvents = events.filter(e => e.eventTypeName.toLowerCase() === 'holiday')
+        const otherEvents = events.filter(e => e.eventTypeName.toLowerCase() !== 'holiday')
+
+        return (
+          <div className="space-y-3">
+            {/* Holiday Banner */}
+            {holidayEvents.length > 0 && (
+              <Card className="bg-green-500/10 border-green-500/30">
+                <CardContent className="py-4 flex items-center gap-3">
+                  <PartyPopper className="h-6 w-6 text-green-600 dark:text-green-400 shrink-0" />
+                  <div className="flex-1">
+                    <p className="font-medium text-green-700 dark:text-green-300">
+                      {holidayEvents.map(e => e.title).join(' • ')}
+                    </p>
+                    <p className="text-sm text-green-600/80 dark:text-green-400/80">
+                      Holiday - No classes today!
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Other Events */}
+            {otherEvents.length > 0 && (
+              <Card>
+                <CardContent className="py-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CalendarDays className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Events Today</span>
+                  </div>
+                  <div className="space-y-2">
+                    {otherEvents.map((event) => (
+                      <div key={event.id} className="flex items-center gap-2 text-sm">
+                        <Badge variant="outline" className="shrink-0">
+                          {event.eventTypeName}
+                        </Badge>
+                        <span className="truncate">{event.title}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )
+      })()}
+
       {/* Schedule Cards */}
       <div className="space-y-3">
         {currentSlots.length === 0 ? (
@@ -275,80 +329,81 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
           currentSlots.map((slot) => {
             // Check if this slot has a summary for the selected date
             const hasSummary = slotSummaries[slot.id]?.includes(selectedDateStr)
-            
+
             return (
-            <Card 
-              key={slot.id} 
-              className={cn(
-                "transition-all",
-                slot.isBreak && "bg-muted/50 border-dashed"
-              )}
-            >
-              <CardHeader className="pb-2">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <Badge 
-                      variant={slot.isBreak ? "outline" : "default"}
-                      className="shrink-0"
-                    >
-                      {slot.slotTypeName}
-                    </Badge>
-                    {slot.batchName && (
-                      <Badge variant="secondary" className="shrink-0">
-                        <Layers className="h-3 w-3 mr-1" />
-                        {slot.batchName}
+              <Card
+                key={slot.id}
+                className={cn(
+                  "transition-all",
+                  slot.isBreak && "bg-muted/50 border-dashed"
+                )}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Badge
+                        variant={slot.isBreak ? "outline" : "default"}
+                        className="shrink-0"
+                      >
+                        {slot.slotTypeName}
                       </Badge>
-                    )}
-                    {hasSummary && (
-                      <Badge variant="success" className="shrink-0">
-                        Summarized
-                      </Badge>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-1 text-sm text-muted-foreground shrink-0">
-                    <Clock className="h-4 w-4" />
-                    <span>{formatTime(slot.startTime)} - {formatTime(slot.endTime)}</span>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-0">
-                {slot.isBreak ? (
-                  <div className="flex items-center gap-2 text-muted-foreground">
-                    <Coffee className="h-4 w-4" />
-                    <span className="text-sm">Break Time</span>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {slot.subjectName && (
-                      <div className="flex items-center gap-2">
-                        <BookOpen className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{slot.subjectName}</span>
-                        {slot.subjectShortName && (
-                          <span className="text-sm text-muted-foreground">
-                            ({slot.subjectShortName})
-                          </span>
-                        )}
-                      </div>
-                    )}
-                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-                      {slot.roomNumber && (
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-4 w-4" />
-                          <span>Room {slot.roomNumber}</span>
-                        </div>
+                      {slot.batchName && (
+                        <Badge variant="secondary" className="shrink-0">
+                          <Layers className="h-3 w-3 mr-1" />
+                          {slot.batchName}
+                        </Badge>
                       )}
-                      {slot.facultyName && (
-                        <div className="flex items-center gap-1">
-                          <User className="h-4 w-4" />
-                          <span>{slot.facultyName}</span>
-                        </div>
+                      {hasSummary && (
+                        <Badge variant="success" className="shrink-0">
+                          Summarized
+                        </Badge>
                       )}
                     </div>
+                    <div className="flex items-center gap-1 text-sm text-muted-foreground shrink-0">
+                      <Clock className="h-4 w-4" />
+                      <span>{formatTime(slot.startTime)} - {formatTime(slot.endTime)}</span>
+                    </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          )})
+                </CardHeader>
+                <CardContent className="pt-0">
+                  {slot.isBreak ? (
+                    <div className="flex items-center gap-2 text-muted-foreground">
+                      <Coffee className="h-4 w-4" />
+                      <span className="text-sm">Break Time</span>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {slot.subjectName && (
+                        <div className="flex items-center gap-2">
+                          <BookOpen className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">{slot.subjectName}</span>
+                          {slot.subjectShortName && (
+                            <span className="text-sm text-muted-foreground">
+                              ({slot.subjectShortName})
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                        {slot.roomNumber && (
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-4 w-4" />
+                            <span>Room {slot.roomNumber}</span>
+                          </div>
+                        )}
+                        {slot.facultyName && (
+                          <div className="flex items-center gap-1">
+                            <User className="h-4 w-4" />
+                            <span>{slot.facultyName}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            )
+          })
         )}
       </div>
     </div>

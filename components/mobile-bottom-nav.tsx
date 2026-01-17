@@ -48,7 +48,10 @@ export function MobileBottomNav({
         <div className="flex h-16 w-full items-center justify-around">
           {primaryNavItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+            // For dashboard, use exact match only; for other items, also match sub-routes
+            const isActive = item.href === "/dashboard"
+              ? pathname === item.href
+              : pathname === item.href || pathname.startsWith(item.href + "/")
 
             return (
               <Link
