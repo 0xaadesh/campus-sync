@@ -217,11 +217,18 @@ export async function joinGroup(code: string) {
       return { error: "You are already a member of this group" }
     }
 
+    // Students are always viewers, faculty can have the group's default role
+    const userDetails = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true }
+    })
+    const memberRole = userDetails?.role === "Student" ? "Viewer" : group.defaultRole
+
     await prisma.groupMembership.create({
       data: {
         groupId: group.id,
         userId: session.user.id,
-        role: group.defaultRole,
+        role: memberRole,
       },
     })
 
@@ -278,11 +285,16 @@ export async function updateMemberRole(membershipId: string, role: GroupRole) {
   try {
     const membership = await prisma.groupMembership.findUnique({
       where: { id: membershipId },
-      include: { group: true },
+      include: { group: true, user: { select: { role: true } } },
     })
 
     if (!membership || membership.group.createdById !== session.user.id) {
       return { error: "Membership not found or unauthorized" }
+    }
+
+    // Students can only be Viewers - cannot be given Editor role
+    if (membership.user.role === "Student" && role === "Editor") {
+      return { error: "Students can only have Viewer role" }
     }
 
     await prisma.groupMembership.update({

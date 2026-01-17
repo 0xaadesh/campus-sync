@@ -24,6 +24,7 @@ model User {
   groupMemberships GroupMembership[]
   createdGroups    Group[] @relation("GroupCreator")
   createdTimetables Timetable[] @relation("TimetableCreator")
+  createdCalendars Calendar[] @relation("CalendarCreator")
   facultySlots     TimeSlot[] @relation("FacultySlots")
   slotTypePreferences SlotTypePreference[]
   batchPreferences    BatchPreference[]
@@ -145,6 +146,7 @@ model Group {
   updatedAt   DateTime  @updatedAt
   memberships GroupMembership[]
   timetables  TimetableGroup[]
+  calendars   CalendarGroup[]
 }
 
 model GroupMembership {
@@ -202,5 +204,53 @@ model LectureSummary {
   updatedAt   DateTime  @updatedAt
 
   @@unique([slotId, date])
+}
+
+// Calendar Models
+model Calendar {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  createdById String
+  createdBy   User            @relation("CalendarCreator", fields: [createdById], references: [id])
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  events      CalendarEvent[]
+  groups      CalendarGroup[]
+}
+
+model CalendarEvent {
+  id          String     @id @default(cuid())
+  calendarId  String
+  calendar    Calendar   @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  title       String
+  description String?    @db.Text
+  startDate   DateTime   @db.Date
+  endDate     DateTime?  @db.Date
+  eventTypeId String
+  eventType   EventType  @relation(fields: [eventTypeId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model CalendarGroup {
+  id         String   @id @default(cuid())
+  calendarId String
+  calendar   Calendar @relation(fields: [calendarId], references: [id], onDelete: Cascade)
+  groupId    String
+  group      Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  assignedAt DateTime @default(now())
+
+  @@unique([calendarId, groupId])
+}
+
+// Event Type model for calendar events
+model EventType {
+  id          String          @id @default(cuid())
+  name        String          @unique
+  description String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  events      CalendarEvent[]
 }
 
