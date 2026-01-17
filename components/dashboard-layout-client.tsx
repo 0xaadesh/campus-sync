@@ -24,7 +24,7 @@ export function DashboardLayoutClient({
 }) {
   const [isCollapsed, setIsCollapsed] = React.useState(false)
   const [isPending, startTransition] = useTransition()
-  
+
   // Optimistic state for instant UI updates
   const [optimisticCollapsed, setOptimisticCollapsed] = useOptimistic(
     isCollapsed,
@@ -33,12 +33,10 @@ export function DashboardLayoutClient({
 
   const handleToggle = React.useCallback(() => {
     const newState = !optimisticCollapsed
-    
-    // Optimistically update UI immediately
-    setOptimisticCollapsed(newState)
-    
-    // Update actual state in a transition (non-blocking)
+
+    // Both optimistic and actual state updates must be in a transition in React 19
     startTransition(() => {
+      setOptimisticCollapsed(newState)
       setIsCollapsed(newState)
     })
   }, [optimisticCollapsed, setOptimisticCollapsed])

@@ -74,7 +74,7 @@ export function Sidebar({ session, isCollapsed, onToggle, userName, userAvailabi
       </div>
 
       {/* Navigation Section */}
-      <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
+      <nav className="flex-1 space-y-1 py-3 px-4 overflow-y-auto">
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = pathname === item.href
@@ -106,7 +106,7 @@ export function Sidebar({ session, isCollapsed, onToggle, userName, userAvailabi
               className={cn(
                 "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-200",
                 pathname === "/dashboard/subjects" &&
-                  "bg-sidebar-accent text-sidebar-accent-foreground",
+                "bg-sidebar-accent text-sidebar-accent-foreground",
                 isCollapsed && "justify-center"
               )}
             >
@@ -120,7 +120,7 @@ export function Sidebar({ session, isCollapsed, onToggle, userName, userAvailabi
               className={cn(
                 "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-200",
                 pathname === "/dashboard/rooms" &&
-                  "bg-sidebar-accent text-sidebar-accent-foreground",
+                "bg-sidebar-accent text-sidebar-accent-foreground",
                 isCollapsed && "justify-center"
               )}
             >
@@ -134,7 +134,7 @@ export function Sidebar({ session, isCollapsed, onToggle, userName, userAvailabi
               className={cn(
                 "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-200",
                 pathname === "/dashboard/slot-types" &&
-                  "bg-sidebar-accent text-sidebar-accent-foreground",
+                "bg-sidebar-accent text-sidebar-accent-foreground",
                 isCollapsed && "justify-center"
               )}
             >
@@ -148,7 +148,7 @@ export function Sidebar({ session, isCollapsed, onToggle, userName, userAvailabi
               className={cn(
                 "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-200",
                 pathname === "/dashboard/batches" &&
-                  "bg-sidebar-accent text-sidebar-accent-foreground",
+                "bg-sidebar-accent text-sidebar-accent-foreground",
                 isCollapsed && "justify-center"
               )}
             >
@@ -162,7 +162,7 @@ export function Sidebar({ session, isCollapsed, onToggle, userName, userAvailabi
               className={cn(
                 "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-200",
                 pathname === "/dashboard/event-types" &&
-                  "bg-sidebar-accent text-sidebar-accent-foreground",
+                "bg-sidebar-accent text-sidebar-accent-foreground",
                 isCollapsed && "justify-center"
               )}
             >
@@ -181,7 +181,7 @@ export function Sidebar({ session, isCollapsed, onToggle, userName, userAvailabi
           className={cn(
             "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-200",
             pathname === "/dashboard/timetables" &&
-              "bg-sidebar-accent text-sidebar-accent-foreground",
+            "bg-sidebar-accent text-sidebar-accent-foreground",
             isCollapsed && "justify-center"
           )}
         >
@@ -195,7 +195,7 @@ export function Sidebar({ session, isCollapsed, onToggle, userName, userAvailabi
           className={cn(
             "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-200",
             pathname === "/dashboard/calendars" &&
-              "bg-sidebar-accent text-sidebar-accent-foreground",
+            "bg-sidebar-accent text-sidebar-accent-foreground",
             isCollapsed && "justify-center"
           )}
         >
@@ -209,7 +209,7 @@ export function Sidebar({ session, isCollapsed, onToggle, userName, userAvailabi
           className={cn(
             "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-200",
             pathname === "/dashboard/groups" &&
-              "bg-sidebar-accent text-sidebar-accent-foreground",
+            "bg-sidebar-accent text-sidebar-accent-foreground",
             isCollapsed && "justify-center"
           )}
         >
@@ -223,7 +223,7 @@ export function Sidebar({ session, isCollapsed, onToggle, userName, userAvailabi
           className={cn(
             "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-200",
             pathname === "/dashboard/availability" &&
-              "bg-sidebar-accent text-sidebar-accent-foreground",
+            "bg-sidebar-accent text-sidebar-accent-foreground",
             isCollapsed && "justify-center"
           )}
         >
@@ -237,7 +237,7 @@ export function Sidebar({ session, isCollapsed, onToggle, userName, userAvailabi
           className={cn(
             "hover:bg-sidebar-accent hover:text-sidebar-accent-foreground flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-all duration-200",
             pathname === "/dashboard/lecture-summaries" &&
-              "bg-sidebar-accent text-sidebar-accent-foreground",
+            "bg-sidebar-accent text-sidebar-accent-foreground",
             isCollapsed && "justify-center"
           )}
         >
@@ -249,14 +249,14 @@ export function Sidebar({ session, isCollapsed, onToggle, userName, userAvailabi
       </nav>
 
       {/* Theme Toggle */}
-      <div className="border-sidebar-border border-t p-2">
+      <div className="border-sidebar-border border-t py-1 px-2">
         <div className={cn("flex items-center", isCollapsed ? "justify-center" : "px-2")}>
           <ThemeToggle />
         </div>
       </div>
 
       {/* Profile Section at Bottom */}
-      <div className="border-sidebar-border border-t p-3">
+      <div className="border-sidebar-border border-t py-2 px-3">
         {!session?.user ? (
           /* Skeleton loading state */
           <div className="p-2">
@@ -284,11 +284,11 @@ export function Sidebar({ session, isCollapsed, onToggle, userName, userAvailabi
                 <div className="bg-sidebar-accent text-sidebar-accent-foreground flex h-9 w-9 items-center justify-center rounded-full text-sm font-medium shrink-0">
                   {userName?.charAt(0).toUpperCase() || "U"}
                 </div>
-                <span 
+                <span
                   className={cn(
                     "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-sidebar",
                     getAvailabilityColor(userAvailability)
-                  )} 
+                  )}
                 />
               </div>
 
