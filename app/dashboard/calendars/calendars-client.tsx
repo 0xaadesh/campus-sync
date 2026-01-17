@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -204,12 +205,12 @@ export function CalendarsClient({
     const month = currentDate.getMonth()
     const firstDayOfMonth = new Date(year, month, 1)
     const lastDayOfMonth = new Date(year, month + 1, 0)
-    
+
     // Get day of week (0 = Sunday, 1 = Monday, etc.)
     // Convert to Monday-start (0 = Monday, 6 = Sunday)
     let startingDayOfWeek = firstDayOfMonth.getDay() - 1
     if (startingDayOfWeek < 0) startingDayOfWeek = 6
-    
+
     const daysInMonth = lastDayOfMonth.getDate()
 
     const days: { date: Date; isCurrentMonth: boolean }[] = []
@@ -246,16 +247,16 @@ export function CalendarsClient({
   // Get events for a specific date
   const getEventsForDate = (date: Date): CalendarEvent[] => {
     if (!selectedCalendar) return []
-    
+
     return selectedCalendar.events.filter((event) => {
       const startDate = new Date(event.startDate)
       const endDate = event.endDate ? new Date(event.endDate) : startDate
-      
+
       // Normalize dates to compare just year/month/day
       const dateNorm = new Date(date.getFullYear(), date.getMonth(), date.getDate())
       const startNorm = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate())
       const endNorm = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate())
-      
+
       return dateNorm >= startNorm && dateNorm <= endNorm
     })
   }
@@ -419,22 +420,19 @@ export function CalendarsClient({
             {calendars.map((calendar) => (
               <Card
                 key={calendar.id}
-                className={`cursor-pointer transition-colors hover:bg-accent ${
-                  selectedCalendar?.id === calendar.id ? "border-primary bg-accent" : ""
-                }`}
+                className={`cursor-pointer transition-colors hover:bg-accent ${selectedCalendar?.id === calendar.id ? "border-primary bg-accent" : ""
+                  }`}
                 onClick={() => setSelectedCalendar(calendar)}
               >
                 <CardHeader className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base truncate">{calendar.name}</CardTitle>
-                      {calendar.description && (
-                        <CardDescription className="text-xs mt-1 line-clamp-2">
-                          {calendar.description}
-                        </CardDescription>
-                      )}
-                    </div>
-                    {isHOD && (
+                  <CardTitle className="text-base truncate" title={calendar.name}>{calendar.name}</CardTitle>
+                  {calendar.description && (
+                    <CardDescription className="text-xs line-clamp-2">
+                      {calendar.description}
+                    </CardDescription>
+                  )}
+                  {isHOD && (
+                    <CardAction>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -471,10 +469,10 @@ export function CalendarsClient({
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    )}
-                  </div>
+                    </CardAction>
+                  )}
                   {isHOD && calendar.groups.length > 0 && (
-                    <div className="flex gap-1 mt-2 flex-wrap">
+                    <div className="flex gap-1 mt-2 flex-wrap col-span-full">
                       {calendar.groups.slice(0, 3).map((g) => (
                         <Badge key={g.id} variant="secondary" className="text-xs">
                           {g.group.title}
@@ -499,13 +497,13 @@ export function CalendarsClient({
                     <div>
                       <CardTitle className="text-sm font-medium">{formatDisplayDate(selectedPanelDate)}</CardTitle>
                       <CardDescription>
-                        {selectedDateEvents.length === 0 
-                          ? "No events" 
+                        {selectedDateEvents.length === 0
+                          ? "No events"
                           : `${selectedDateEvents.length} event${selectedDateEvents.length > 1 ? 's' : ''}`}
                       </CardDescription>
                     </div>
-                    <Button 
-                      variant="ghost" 
+                    <Button
+                      variant="ghost"
                       size="icon-xs"
                       onClick={() => setSelectedPanelDate(null)}
                       title="Close panel"
@@ -516,8 +514,8 @@ export function CalendarsClient({
                 </CardHeader>
                 <CardContent className="pt-0">
                   {canEdit && (
-                    <Button 
-                      size="sm" 
+                    <Button
+                      size="sm"
                       className="w-full mb-3"
                       onClick={() => handleAddEvent(selectedPanelDate)}
                     >
@@ -535,11 +533,11 @@ export function CalendarsClient({
                     <div className="space-y-2">
                       {selectedDateEvents.map((event) => {
                         const colors = getColorForEventType(event.eventType.name)
-                        const startDateStr = new Date(event.startDate).toLocaleDateString()
-                        const endDateStr = event.endDate ? new Date(event.endDate).toLocaleDateString() : null
-                        
+                        const startDateStr = new Date(event.startDate).toLocaleDateString('en-GB')
+                        const endDateStr = event.endDate ? new Date(event.endDate).toLocaleDateString('en-GB') : null
+
                         return (
-                          <div 
+                          <div
                             key={event.id}
                             className="p-3 rounded-lg border bg-card"
                           >
@@ -632,7 +630,7 @@ export function CalendarsClient({
                     const events = getEventsForDate(dayData.date)
                     const today = isToday(dayData.date)
                     const isSelected = isSelectedPanelDate(dayData.date)
-                    
+
                     return (
                       <div
                         key={idx}

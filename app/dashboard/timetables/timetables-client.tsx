@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -231,7 +232,7 @@ export function TimetablesClient({
 
       // Generate PDF blob
       const blob = await pdf(<TimetablePDF timetable={timetableForPDF} />).toBlob()
-      
+
       // Create download link
       const url = URL.createObjectURL(blob)
       const link = document.createElement("a")
@@ -292,22 +293,19 @@ export function TimetablesClient({
             {timetables.map((timetable) => (
               <Card
                 key={timetable.id}
-                className={`cursor-pointer transition-colors hover:bg-accent ${
-                  selectedTimetable?.id === timetable.id ? "border-primary bg-accent" : ""
-                }`}
+                className={`cursor-pointer transition-colors hover:bg-accent ${selectedTimetable?.id === timetable.id ? "border-primary bg-accent" : ""
+                  }`}
                 onClick={() => setSelectedTimetable(timetable)}
               >
                 <CardHeader className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <CardTitle className="text-base truncate">{timetable.name}</CardTitle>
-                      {timetable.description && (
-                        <CardDescription className="text-xs mt-1 line-clamp-2">
-                          {timetable.description}
-                        </CardDescription>
-                      )}
-                    </div>
-                    {isHOD && (
+                  <CardTitle className="text-base truncate" title={timetable.name}>{timetable.name}</CardTitle>
+                  {timetable.description && (
+                    <CardDescription className="text-xs line-clamp-2">
+                      {timetable.description}
+                    </CardDescription>
+                  )}
+                  {isHOD && (
+                    <CardAction>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -344,10 +342,10 @@ export function TimetablesClient({
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
-                    )}
-                  </div>
+                    </CardAction>
+                  )}
                   {isHOD && (
-                    <div className="flex gap-1 mt-2 flex-wrap">
+                    <div className="flex gap-1 mt-2 flex-wrap col-span-full">
                       {timetable.groups.slice(0, 2).map((g) => (
                         <Badge key={g.id} variant="outline" className="text-xs">
                           {g.group.title}
@@ -413,96 +411,96 @@ export function TimetablesClient({
 
                 {/* Scrollable slots container */}
                 <div className="max-h-[60vh] overflow-y-auto pr-2">
-                {/* Slots for the day */}
-                {slotsForDay.length === 0 ? (
-                  <div className="text-center py-12">
-                    <ClockIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No slots for {selectedDay}</h3>
-                    <p className="text-muted-foreground mb-4">
-                      {canEdit
-                        ? "Add a slot to this day."
-                        : "No classes scheduled for this day."}
-                    </p>
-                    {canEdit && (
-                      <Button onClick={handleAddSlot}>
-                        <PlusIcon className="mr-2 h-4 w-4" />
-                        Add Slot
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {slotsForDay.map((slot) => (
-                      <Card key={slot.id} className="overflow-hidden">
-                        <div className="flex">
-                          {/* Time column */}
-                          <div className="bg-primary/10 p-4 flex flex-col items-center justify-center min-w-[100px]">
-                            <span className="text-sm font-medium">{formatTime(slot.startTime)}</span>
-                            <span className="text-xs text-muted-foreground">to</span>
-                            <span className="text-sm font-medium">{formatTime(slot.endTime)}</span>
-                          </div>
-                          {/* Details column */}
-                          <div className="flex-1 p-4">
-                            <div className="flex items-start justify-between">
-                              <div>
-                                <h4 className="font-semibold flex items-center gap-2">
-                                  <BookOpenIcon className="h-4 w-4 text-muted-foreground" />
-                                  {slot.subject 
-                                    ? `${slot.subject.shortName} - ${slot.subject.name}`
-                                    : slot.slotType.name}
-                                </h4>
-                                <div className="flex flex-wrap gap-4 mt-2 text-sm text-muted-foreground">
-                                  {slot.room && (
-                                    <span className="flex items-center gap-1">
-                                      <MapPinIcon className="h-3 w-3" />
-                                      {slot.room.number}
-                                    </span>
-                                  )}
-                                  {slot.faculty && (
-                                    <span className="flex items-center gap-1">
-                                      <UserIcon className="h-3 w-3" />
-                                      {slot.faculty.name}
-                                    </span>
-                                  )}
-                                  {slot.batch && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {slot.batch.name}
+                  {/* Slots for the day */}
+                  {slotsForDay.length === 0 ? (
+                    <div className="text-center py-12">
+                      <ClockIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No slots for {selectedDay}</h3>
+                      <p className="text-muted-foreground mb-4">
+                        {canEdit
+                          ? "Add a slot to this day."
+                          : "No classes scheduled for this day."}
+                      </p>
+                      {canEdit && (
+                        <Button onClick={handleAddSlot}>
+                          <PlusIcon className="mr-2 h-4 w-4" />
+                          Add Slot
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {slotsForDay.map((slot) => (
+                        <Card key={slot.id} className="overflow-hidden">
+                          <div className="flex">
+                            {/* Time column */}
+                            <div className="bg-primary/10 p-4 flex flex-col items-center justify-center min-w-[100px]">
+                              <span className="text-sm font-medium">{formatTime(slot.startTime)}</span>
+                              <span className="text-xs text-muted-foreground">to</span>
+                              <span className="text-sm font-medium">{formatTime(slot.endTime)}</span>
+                            </div>
+                            {/* Details column */}
+                            <div className="flex-1 p-4">
+                              <div className="flex items-start justify-between">
+                                <div>
+                                  <h4 className="font-semibold flex items-center gap-2">
+                                    <BookOpenIcon className="h-4 w-4 text-muted-foreground" />
+                                    {slot.subject
+                                      ? `${slot.subject.shortName} - ${slot.subject.name}`
+                                      : slot.slotType.name}
+                                  </h4>
+                                  <div className="flex flex-wrap gap-4 mt-2 text-sm text-muted-foreground">
+                                    {slot.room && (
+                                      <span className="flex items-center gap-1">
+                                        <MapPinIcon className="h-3 w-3" />
+                                        {slot.room.number}
+                                      </span>
+                                    )}
+                                    {slot.faculty && (
+                                      <span className="flex items-center gap-1">
+                                        <UserIcon className="h-3 w-3" />
+                                        {slot.faculty.name}
+                                      </span>
+                                    )}
+                                    {slot.batch && (
+                                      <Badge variant="outline" className="text-xs">
+                                        {slot.batch.name}
+                                      </Badge>
+                                    )}
+                                    <Badge variant="secondary" className="text-xs">
+                                      {slot.slotType.name}
                                     </Badge>
-                                  )}
-                                  <Badge variant="secondary" className="text-xs">
-                                    {slot.slotType.name}
-                                  </Badge>
+                                  </div>
                                 </div>
+                                {canEdit && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <Button variant="ghost" size="icon-xs">
+                                        <MoreVerticalIcon className="h-4 w-4" />
+                                      </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                      <DropdownMenuItem onClick={() => handleEditSlot(slot)}>
+                                        <PencilIcon className="mr-2 h-4 w-4" />
+                                        Edit
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="text-destructive focus:text-destructive"
+                                        onClick={() => handleDeleteSlot(slot)}
+                                      >
+                                        <TrashIcon className="mr-2 h-4 w-4" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
                               </div>
-                              {canEdit && (
-                                <DropdownMenu>
-                                  <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="icon-xs">
-                                      <MoreVerticalIcon className="h-4 w-4" />
-                                    </Button>
-                                  </DropdownMenuTrigger>
-                                  <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleEditSlot(slot)}>
-                                      <PencilIcon className="mr-2 h-4 w-4" />
-                                      Edit
-                                    </DropdownMenuItem>
-                                    <DropdownMenuItem
-                                      className="text-destructive focus:text-destructive"
-                                      onClick={() => handleDeleteSlot(slot)}
-                                    >
-                                      <TrashIcon className="mr-2 h-4 w-4" />
-                                      Delete
-                                    </DropdownMenuItem>
-                                  </DropdownMenuContent>
-                                </DropdownMenu>
-                              )}
                             </div>
                           </div>
-                        </div>
-                      </Card>
-                    ))}
-                  </div>
-                )}
+                        </Card>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
