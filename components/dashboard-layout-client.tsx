@@ -4,8 +4,8 @@ import * as React from "react"
 import { useOptimistic, useTransition } from "react"
 import type { Session } from "next-auth"
 import { Sidebar } from "@/components/sidebar"
-import { MobileNav } from "@/components/mobile-nav"
 import { MobileHeader } from "@/components/mobile-header"
+import { MobileBottomNav } from "@/components/mobile-bottom-nav"
 
 type Availability = "Active" | "Away" | "Busy"
 
@@ -44,12 +44,12 @@ export function DashboardLayoutClient({
   }, [optimisticCollapsed, setOptimisticCollapsed])
 
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-screen w-screen flex-col md:flex-row overflow-hidden">
       {/* Mobile Header */}
-      <MobileHeader />
+      <MobileHeader session={session} />
 
       {/* Desktop Sidebar */}
-      <div className="hidden md:block">
+      <div className="hidden md:block shrink-0">
         <Sidebar
           session={session}
           isCollapsed={optimisticCollapsed}
@@ -61,14 +61,19 @@ export function DashboardLayoutClient({
       </div>
 
       {/* Main Content */}
-      <div className="flex flex-1 flex-col overflow-hidden">
-        <main className="flex-1 overflow-y-auto pt-14 pb-16 md:pt-0 md:pb-0">
+      <div className="flex flex-1 flex-col overflow-hidden pt-14 md:pt-0">
+        <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
           {children}
         </main>
       </div>
 
-      {/* Mobile Navigation */}
-      <MobileNav session={session} />
+      {/* Mobile Bottom Nav */}
+      <MobileBottomNav
+        session={session}
+        userName={userName}
+        userAvailability={userAvailability}
+        userStatus={userStatus}
+      />
     </div>
   )
 }

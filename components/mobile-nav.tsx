@@ -3,150 +3,222 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { LayoutDashboard, User, BookOpen, DoorOpen, Clock, Eye, Calendar, Settings, Users, Layers } from "lucide-react"
-import { cn } from "@/lib/utils"
-import type { Session } from "next-auth"
 import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover"
+  Activity,
+  BookOpen,
+  Calendar,
+  Clock,
+  DoorOpen,
+  Layers,
+  LayoutDashboard,
+  User,
+  Users,
+} from "lucide-react"
+import type { Session } from "next-auth"
+import { cn } from "@/lib/utils"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Separator } from "@/components/ui/separator"
 
-interface MobileNavProps {
-  session: Session | null
+type IconComponent = React.ComponentType<React.SVGProps<SVGSVGElement>>
+type Availability = "Active" | "Away" | "Busy"
+
+interface NavItem {
+  title: string
+  href: string
+  icon: IconComponent
 }
 
-export function MobileNav({ session }: MobileNavProps) {
+export const primaryNavItems: readonly NavItem[] = [
+  {
+    title: "Dashboard",
+    href: "/dashboard",
+    icon: LayoutDashboard,
+  },
+  {
+    title: "Timetables",
+    href: "/dashboard/timetables",
+    icon: Calendar,
+  },
+  {
+    title: "Groups",
+    href: "/dashboard/groups",
+    icon: Users,
+  },
+  {
+    title: "Availability",
+    href: "/dashboard/availability",
+    icon: Activity,
+  },
+] as const
+
+export const moreNavItems: readonly NavItem[] = [
+  {
+    title: "Lecture Summaries",
+    href: "/dashboard/lecture-summaries",
+    icon: BookOpen,
+  },
+] as const
+
+export const hodConfigItems: readonly NavItem[] = [
+  {
+    title: "Subjects",
+    href: "/dashboard/subjects",
+    icon: BookOpen,
+  },
+  {
+    title: "Rooms",
+    href: "/dashboard/rooms",
+    icon: DoorOpen,
+  },
+  {
+    title: "Slot Types",
+    href: "/dashboard/slot-types",
+    icon: Clock,
+  },
+  {
+    title: "Batches",
+    href: "/dashboard/batches",
+    icon: Layers,
+  },
+] as const
+
+const profileNavItem: NavItem = {
+  title: "Profile",
+  href: "/dashboard/profile",
+  icon: User,
+}
+
+const getInitials = (name: string | null | undefined) => {
+  if (!name) return "U"
+  return name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2)
+}
+
+const availabilityColorMap: Record<Availability, string> = {
+  Active: "bg-green-500",
+  Away: "bg-red-500",
+  Busy: "bg-yellow-500",
+}
+
+interface MoreMenuContentProps {
+  session: Session | null
+  onNavigate?: () => void
+  userName?: string | null
+  userAvailability?: Availability
+  userStatus?: string | null
+}
+
+export function MoreMenuContent({
+  session,
+  onNavigate,
+  userName,
+  userAvailability = "Active",
+  userStatus,
+}: MoreMenuContentProps) {
   const pathname = usePathname()
-  const [configOpen, setConfigOpen] = React.useState(false)
+  const showHodSection = session?.user?.role === "HOD"
+  const resolvedName = userName ?? session?.user?.name ?? "User"
+  const availabilityLabel = userAvailability ?? "Active"
+  const statusText = userStatus?.trim() || ""
+  const initials = getInitials(resolvedName)
+  const availabilityDotClass = availabilityColorMap[availabilityLabel as Availability]
 
-  const navItems = [
-    {
-      title: "Dashboard",
-      href: "/dashboard",
-      icon: LayoutDashboard,
-    },
-    {
-      title: "Timetable",
-      href: "/dashboard/timetables",
-      icon: Calendar,
-    },
-    {
-      title: "Summaries",
-      href: "/dashboard/lecture-summaries",
-      icon: BookOpen,
-    },
-    {
-      title: "Groups",
-      href: "/dashboard/groups",
-      icon: Users,
-    },
-    {
-      title: "Profile",
-      href: "/dashboard/profile",
-      icon: User,
-    },
-  ]
+  const handleNavigate = () => {
+    onNavigate?.()
+  }
 
-  const configItems = [
-    {
-      title: "Subjects",
-      href: "/dashboard/subjects",
-      icon: BookOpen,
-    },
-    {
-      title: "Rooms",
-      href: "/dashboard/rooms",
-      icon: DoorOpen,
-    },
-    {
-      title: "Slot Types",
-      href: "/dashboard/slot-types",
-      icon: Clock,
-    },
-    {
-      title: "Batches",
-      href: "/dashboard/batches",
-      icon: Layers,
-    },
-  ]
+  const renderLink = (item: NavItem) => {
+    const Icon = item.icon
+    const isActive =
+      pathname === item.href || pathname.startsWith(`${item.href}/`)
 
-  const isConfigActive = configItems.some(item => pathname === item.href)
-
-  // Only show config for HOD
-  const showConfig = session?.user?.role === "HOD"
+    return (
+      <Link
+        key={item.href}
+        href={item.href}
+        onClick={handleNavigate}
+        className={cn(
+          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+          isActive
+            ? "bg-primary/10 text-primary font-medium"
+            : "text-muted-foreground hover:bg-muted hover:text-foreground"
+        )}
+      >
+        <Icon className="h-4 w-4" />
+        <span>{item.title}</span>
+      </Link>
+    )
+  }
 
   return (
-    <nav className="bg-background border-t fixed bottom-0 left-0 right-0 z-50 flex h-16 items-center justify-around border-t md:hidden">
-      {navItems.map((item) => {
-        const Icon = item.icon
-        const isActive = pathname === item.href
+    <div className="flex max-h-[70vh] w-72 flex-col overflow-hidden rounded-md">
+      <div className="flex-1 overflow-y-auto p-3">
+        <div className="space-y-1">
+          {moreNavItems.map((item) => renderLink(item))}
+        </div>
 
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "flex flex-col items-center justify-center gap-1 px-4 py-2 text-xs transition-colors",
-              isActive
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Icon className="h-5 w-5" />
-            <span>{item.title}</span>
-          </Link>
-        )
-      })}
-
-      {showConfig && (
-        <Popover open={configOpen} onOpenChange={setConfigOpen}>
-          <PopoverTrigger asChild>
-            <button
-              className={cn(
-                "flex flex-col items-center justify-center gap-1 px-4 py-2 text-xs transition-colors",
-                isConfigActive
-                  ? "text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Settings className="h-5 w-5" />
-              <span>Config</span>
-            </button>
-          </PopoverTrigger>
-          <PopoverContent 
-            side="top" 
-            align="end" 
-            className="w-48 p-2"
-            sideOffset={8}
-          >
-            <div className="grid gap-1">
-              {configItems.map((item) => {
-                const Icon = item.icon
-                const isActive = pathname === item.href
-
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setConfigOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-                      isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span>{item.title}</span>
-                  </Link>
-                )
-              })}
+        {showHodSection && (
+          <div className="mt-4">
+            <p className="mb-2 px-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Configuration
+            </p>
+            <div className="space-y-1">
+              {hodConfigItems.map((item) => renderLink(item))}
             </div>
-          </PopoverContent>
-        </Popover>
-      )}
-    </nav>
+          </div>
+        )}
+
+        <Separator className="my-3" />
+
+        <div>
+          {(() => {
+            const isActive =
+              pathname === profileNavItem.href ||
+              pathname.startsWith(`${profileNavItem.href}/`)
+            return (
+              <Link
+                key={profileNavItem.href}
+                href={profileNavItem.href}
+                onClick={handleNavigate}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                  isActive
+                    ? "bg-primary/10 text-primary font-medium"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <div className="relative">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                    {initials}
+                  </div>
+                  <span
+                    className={cn(
+                      "absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-background",
+                      availabilityDotClass
+                    )}
+                  />
+                </div>
+                <div className="min-w-0 flex-1 text-left">
+                  <p className="truncate text-sm font-medium text-foreground">
+                    {resolvedName}
+                  </p>
+                  {statusText && (
+                    <p className="truncate text-xs text-muted-foreground">
+                      {statusText}
+                    </p>
+                  )}
+                </div>
+              </Link>
+            )
+          })()}
+        </div>
+      </div>
+
+    </div>
   )
 }
 
