@@ -10,11 +10,14 @@ A comprehensive campus management system built with Next.js 16, Prisma 5, NextAu
   - Secure signup/login with password hashing (bcryptjs)
   - Email verification support
   - Session management with NextAuth v5
+  - **OTP-based password reset** via email (Nodemailer)
+  - Institution-specific email domain (`@apsit.edu.in`)
 
 - **Role-Based Access Control**
   - **HOD (Head of Department)**: Full administrative access
   - **Faculty**: Can manage timetables, view schedules, update availability
   - **Student**: View schedules, join groups, manage preferences
+  - Configurable signup restrictions via environment variables
 
 ### 📅 Timetable Management
 
@@ -155,6 +158,7 @@ A comprehensive campus management system built with Next.js 16, Prisma 5, NextAu
 - **Theme**: next-themes
 - **Animations**: framer-motion, Three.js
 - **Icons**: lucide-react
+- **Email**: Nodemailer
 - **Runtime**: Bun / Node.js
 
 ## Getting Started
@@ -193,6 +197,18 @@ DATABASE_URL="postgresql://user:password@localhost:5432/campus_sync"
 
 NEXTAUTH_SECRET="your-secret-key-here-generate-a-random-string"
 NEXTAUTH_URL="http://localhost:3000"
+
+# Email Configuration (for password reset)
+EMAIL_SERVER_HOST="smtp.gmail.com"
+EMAIL_SERVER_PORT="587"
+EMAIL_SERVER_USER="your-email@gmail.com"
+EMAIL_SERVER_PASSWORD="your-app-password"
+EMAIL_FROM="Campus Sync <your-email@gmail.com>"
+
+# Optional: Signup Restrictions
+# DISABLE_SIGNUP=true           # Completely disable signup
+# DISABLE_HOD_SIGNUP=true       # Remove HOD from role dropdown
+# DISABLE_FACULTY_SIGNUP=true   # Remove Faculty from role dropdown
 ```
 
 Generate a secure `NEXTAUTH_SECRET`:
@@ -294,6 +310,32 @@ If you need to migrate your local PostgreSQL data to Neon:
 └── types/                 # TypeScript types
 ```
 
+## Configuration
+
+### Signup Restrictions
+
+Control who can sign up using environment variables:
+
+| Variable | Effect |
+|----------|--------|
+| `DISABLE_SIGNUP=true` | Completely disables signup |
+| `DISABLE_HOD_SIGNUP=true` | Removes HOD from role dropdown |
+| `DISABLE_FACULTY_SIGNUP=true` | Removes Faculty from role dropdown |
+
+### Email Configuration
+
+For OTP-based password reset, configure your email provider:
+
+```env
+EMAIL_SERVER_HOST=smtp.gmail.com
+EMAIL_SERVER_PORT=587
+EMAIL_SERVER_USER=your-email@gmail.com
+EMAIL_SERVER_PASSWORD=your-app-password
+EMAIL_FROM="Campus Sync <your-email@gmail.com>"
+```
+
+> **Note:** For Gmail, create an [App Password](https://myaccount.google.com/apppasswords) instead of using your regular password.
+
 ## Database Schema
 
 The application uses Prisma with the following main models:
@@ -310,6 +352,10 @@ The application uses Prisma with the following main models:
 - **TimetableGroup**: Timetable-group assignments
 - **SlotTypePreference**: User slot type filters
 - **BatchPreference**: User batch filters
+- **Calendar**: Academic calendars
+- **CalendarEvent**: Calendar events with dates
+- **EventType**: Event categorization
+- **PasswordResetToken**: OTP tokens for password reset
 
 ### Enums
 

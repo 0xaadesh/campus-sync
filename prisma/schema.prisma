@@ -254,3 +254,12 @@ model EventType {
   events      CalendarEvent[]
 }
 
+// Password Reset Token for OTP-based password reset
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  token     String   // Hashed 6-digit OTP
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+}
