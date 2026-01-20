@@ -58,10 +58,10 @@ async function canViewTimetable(userId: string, timetableId: string): Promise<bo
     where: { id: userId },
     select: { role: true }
   })
-  
+
   // HOD can view all timetables
   if (user?.role === "HOD") return true
-  
+
   // Check if user is in any group assigned to this timetable
   const membership = await prisma.timetableGroup.findFirst({
     where: {
@@ -73,7 +73,7 @@ async function canViewTimetable(userId: string, timetableId: string): Promise<bo
       }
     }
   })
-  
+
   return !!membership
 }
 
@@ -83,10 +83,10 @@ async function canEditTimetable(userId: string, timetableId: string): Promise<bo
     where: { id: userId },
     select: { role: true }
   })
-  
+
   // HOD can edit all timetables
   if (user?.role === "HOD") return true
-  
+
   // Check if user has editor role in any group assigned to this timetable
   const membership = await prisma.groupMembership.findFirst({
     where: {
@@ -99,7 +99,7 @@ async function canEditTimetable(userId: string, timetableId: string): Promise<bo
       }
     }
   })
-  
+
   // Also check if default role is Editor for any group the user is in
   if (!membership) {
     const defaultEditorMembership = await prisma.groupMembership.findFirst({
@@ -115,7 +115,7 @@ async function canEditTimetable(userId: string, timetableId: string): Promise<bo
     })
     return !!defaultEditorMembership
   }
-  
+
   return !!membership
 }
 
@@ -123,7 +123,7 @@ async function canEditTimetable(userId: string, timetableId: string): Promise<bo
 export async function getTimetables() {
   const user = await getCurrentUser()
   if (!user) return []
-  
+
   if (user.role === "HOD") {
     return prisma.timetable.findMany({
       include: {
@@ -147,10 +147,11 @@ export async function getTimetables() {
       orderBy: { createdAt: "desc" }
     })
   }
-  
-  // For non-HOD users, get timetables they have access to through groups
+
+  // For non-HOD users, get active timetables they have access to through groups
   return prisma.timetable.findMany({
     where: {
+      isActive: true,  // Only show active timetables to non-HOD
       groups: {
         some: {
           group: {
@@ -187,10 +188,10 @@ export async function getTimetables() {
 export async function getTimetable(id: string) {
   const user = await getCurrentUser()
   if (!user) return null
-  
+
   const canView = await canViewTimetable(user.id, id)
   if (!canView) return null
-  
+
   return prisma.timetable.findUnique({
     where: { id },
     include: {
@@ -220,16 +221,16 @@ export async function createTimetable(data: { name: string; description?: string
   if (!user || user.role !== "HOD") {
     return { error: "Only HOD can create timetables" }
   }
-  
+
   const trimmedName = data.name.trim()
   if (!trimmedName) {
     return { error: "Timetable name is required" }
   }
-  
+
   if (trimmedName.length > 100) {
     return { error: "Timetable name must be 100 characters or less" }
   }
-  
+
   try {
     const timetable = await prisma.timetable.create({
       data: {
@@ -250,21 +251,21 @@ export async function createTimetable(data: { name: string; description?: string
 export async function updateTimetable(id: string, data: { name: string; description?: string }) {
   const user = await getCurrentUser()
   if (!user) return { error: "Not authenticated" }
-  
+
   const canEdit = await canEditTimetable(user.id, id)
   if (!canEdit) {
     return { error: "You don't have permission to edit this timetable" }
   }
-  
+
   const trimmedName = data.name.trim()
   if (!trimmedName) {
     return { error: "Timetable name is required" }
   }
-  
+
   if (trimmedName.length > 100) {
     return { error: "Timetable name must be 100 characters or less" }
   }
-  
+
   try {
     await prisma.timetable.update({
       where: { id },
@@ -287,7 +288,7 @@ export async function deleteTimetable(id: string) {
   if (!user || user.role !== "HOD") {
     return { error: "Only HOD can delete timetables" }
   }
-  
+
   try {
     await prisma.timetable.delete({ where: { id } })
     revalidatePath("/dashboard/timetables")
@@ -302,23 +303,23 @@ export async function deleteTimetable(id: string) {
 export async function addTimeSlot(timetableId: string, data: TimeSlotData) {
   const user = await getCurrentUser()
   if (!user) return { error: "Not authenticated" }
-  
+
   const canEdit = await canEditTimetable(user.id, timetableId)
   if (!canEdit) {
     return { error: "You don't have permission to edit this timetable" }
   }
-  
+
   // Validate time format
   const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
   if (!timeRegex.test(data.startTime) || !timeRegex.test(data.endTime)) {
     return { error: "Invalid time format. Use HH:MM" }
   }
-  
+
   // Validate start time is before end time
   if (data.startTime >= data.endTime) {
     return { error: "Start time must be before end time" }
   }
-  
+
   try {
     await prisma.timeSlot.create({
       data: {
@@ -345,31 +346,31 @@ export async function addTimeSlot(timetableId: string, data: TimeSlotData) {
 export async function updateTimeSlot(slotId: string, data: TimeSlotData) {
   const user = await getCurrentUser()
   if (!user) return { error: "Not authenticated" }
-  
+
   // Get the slot to find its timetable
   const slot = await prisma.timeSlot.findUnique({
     where: { id: slotId },
     select: { timetableId: true }
   })
-  
+
   if (!slot) return { error: "Slot not found" }
-  
+
   const canEdit = await canEditTimetable(user.id, slot.timetableId)
   if (!canEdit) {
     return { error: "You don't have permission to edit this timetable" }
   }
-  
+
   // Validate time format
   const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/
   if (!timeRegex.test(data.startTime) || !timeRegex.test(data.endTime)) {
     return { error: "Invalid time format. Use HH:MM" }
   }
-  
+
   // Validate start time is before end time
   if (data.startTime >= data.endTime) {
     return { error: "Start time must be before end time" }
   }
-  
+
   try {
     await prisma.timeSlot.update({
       where: { id: slotId },
@@ -396,20 +397,20 @@ export async function updateTimeSlot(slotId: string, data: TimeSlotData) {
 export async function deleteTimeSlot(slotId: string) {
   const user = await getCurrentUser()
   if (!user) return { error: "Not authenticated" }
-  
+
   // Get the slot to find its timetable
   const slot = await prisma.timeSlot.findUnique({
     where: { id: slotId },
     select: { timetableId: true }
   })
-  
+
   if (!slot) return { error: "Slot not found" }
-  
+
   const canEdit = await canEditTimetable(user.id, slot.timetableId)
   if (!canEdit) {
     return { error: "You don't have permission to edit this timetable" }
   }
-  
+
   try {
     await prisma.timeSlot.delete({ where: { id: slotId } })
     revalidatePath("/dashboard/timetables")
@@ -426,7 +427,7 @@ export async function assignGroupToTimetable(timetableId: string, groupId: strin
   if (!user || user.role !== "HOD") {
     return { error: "Only HOD can assign groups to timetables" }
   }
-  
+
   try {
     await prisma.timetableGroup.create({
       data: { timetableId, groupId }
@@ -448,7 +449,7 @@ export async function removeGroupFromTimetable(timetableId: string, groupId: str
   if (!user || user.role !== "HOD") {
     return { error: "Only HOD can remove groups from timetables" }
   }
-  
+
   try {
     await prisma.timetableGroup.delete({
       where: {
@@ -500,7 +501,7 @@ export async function getAllFaculty() {
 export async function getAllGroups() {
   const user = await getCurrentUser()
   if (!user || user.role !== "HOD") return []
-  
+
   return prisma.group.findMany({
     select: { id: true, title: true, defaultRole: true },
     orderBy: { title: "asc" }
@@ -520,4 +521,25 @@ export async function checkCanEditTimetable(timetableId: string) {
   const user = await getCurrentUser()
   if (!user) return false
   return canEditTimetable(user.id, timetableId)
+}
+
+// Toggle timetable active status (HOD only)
+export async function toggleTimetableActive(id: string, isActive: boolean) {
+  const user = await getCurrentUser()
+  if (!user || user.role !== "HOD") {
+    return { error: "Only HOD can toggle timetable status" }
+  }
+
+  try {
+    await prisma.timetable.update({
+      where: { id },
+      data: { isActive }
+    })
+    revalidatePath("/dashboard/timetables")
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (error) {
+    console.error("Toggle timetable error:", error)
+    return { error: "Failed to toggle timetable status" }
+  }
 }

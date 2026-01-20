@@ -104,9 +104,12 @@ export async function getUserSchedule(): Promise<{
   const groupIds = userGroups.map(g => g.groupId)
 
   if (groupIds.length > 0) {
-    // Get timetables assigned to user's groups
+    // Get timetables assigned to user's groups (only active ones)
     const timetableGroups = await prisma.timetableGroup.findMany({
-      where: { groupId: { in: groupIds } },
+      where: {
+        groupId: { in: groupIds },
+        timetable: { isActive: true }  // Only include active timetables
+      },
       include: {
         timetable: {
           include: {
@@ -249,7 +252,10 @@ export async function getUserSchedule(): Promise<{
   const calendarWhereClause = userRole === "HOD"
     ? {} // HOD sees all calendars
     : groupIds.length > 0
-      ? { groups: { some: { groupId: { in: groupIds } } } }
+      ? {
+        groups: { some: { groupId: { in: groupIds } } },
+        isActive: true // Filter out inactive calendars for non-HOD
+      }
       : null // No groups = no calendars for non-HOD
 
   if (calendarWhereClause !== null) {

@@ -93,10 +93,11 @@ export async function getFacultyAvailability(): Promise<{
     orderBy: { name: "asc" }
   })
 
-  // Get all time slots with faculty assignments
+  // Get all time slots with faculty assignments (from active timetables only)
   const allSlots = await prisma.timeSlot.findMany({
     where: {
-      slotType: { name: { not: "Break" } }
+      slotType: { name: { not: "Break" } },
+      timetable: { isActive: true }
     },
     include: {
       timetable: { select: { name: true } },
@@ -108,10 +109,11 @@ export async function getFacultyAvailability(): Promise<{
     }
   })
 
-  // Get unique slot definitions (day + time combinations)
+  // Get unique slot definitions (day + time combinations from active timetables)
   const uniqueSlotDefs = await prisma.timeSlot.findMany({
     where: {
-      slotType: { name: { not: "Break" } }
+      slotType: { name: { not: "Break" } },
+      timetable: { isActive: true }
     },
     select: {
       day: true,
@@ -143,7 +145,7 @@ export async function getFacultyAvailability(): Promise<{
     const occupiedSlotKeys = new Set(
       occupiedSlots.map(s => `${s.day}-${s.startTime}-${s.endTime}`)
     )
-    
+
     const freeSlots = uniqueSlotDefs
       .filter(slotDef => !occupiedSlotKeys.has(`${slotDef.day}-${slotDef.startTime}-${slotDef.endTime}`))
       .map(slotDef => ({
@@ -174,9 +176,9 @@ export async function getFacultyAvailability(): Promise<{
   const slotWise: SlotWithFreeFaculty[] = sortByDayAndTime(uniqueSlotDefs.map(slotDef => {
     // Find faculty who are occupied during this slot
     const occupiedFacultyIds = allSlots
-      .filter(s => 
-        s.day === slotDef.day && 
-        s.startTime === slotDef.startTime && 
+      .filter(s =>
+        s.day === slotDef.day &&
+        s.startTime === slotDef.startTime &&
         s.endTime === slotDef.endTime
       )
       .map(s => s.facultyId)
@@ -235,11 +237,12 @@ export async function getRoomAvailability(): Promise<{
     orderBy: { number: "asc" }
   })
 
-  // Get all time slots with room assignments
+  // Get all time slots with room assignments (from active timetables only)
   const allSlots = await prisma.timeSlot.findMany({
     where: {
       roomId: { not: null },
-      slotType: { name: { not: "Break" } }
+      slotType: { name: { not: "Break" } },
+      timetable: { isActive: true }
     },
     include: {
       timetable: { select: { name: true } },
@@ -250,10 +253,11 @@ export async function getRoomAvailability(): Promise<{
     }
   })
 
-  // Get unique slot definitions (day + time combinations)
+  // Get unique slot definitions (day + time combinations from active timetables)
   const uniqueSlotDefs = await prisma.timeSlot.findMany({
     where: {
-      slotType: { name: { not: "Break" } }
+      slotType: { name: { not: "Break" } },
+      timetable: { isActive: true }
     },
     select: {
       day: true,
@@ -285,7 +289,7 @@ export async function getRoomAvailability(): Promise<{
     const occupiedSlotKeys = new Set(
       occupiedSlots.map(s => `${s.day}-${s.startTime}-${s.endTime}`)
     )
-    
+
     const freeSlots = uniqueSlotDefs
       .filter(slotDef => !occupiedSlotKeys.has(`${slotDef.day}-${slotDef.startTime}-${slotDef.endTime}`))
       .map(slotDef => ({
@@ -313,9 +317,9 @@ export async function getRoomAvailability(): Promise<{
   const slotWise: SlotWithFreeRooms[] = sortByDayAndTime(uniqueSlotDefs.map(slotDef => {
     // Find rooms that are occupied during this slot
     const occupiedRoomIds = allSlots
-      .filter(s => 
-        s.day === slotDef.day && 
-        s.startTime === slotDef.startTime && 
+      .filter(s =>
+        s.day === slotDef.day &&
+        s.startTime === slotDef.startTime &&
         s.endTime === slotDef.endTime
       )
       .map(s => s.roomId)

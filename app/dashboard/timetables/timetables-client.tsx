@@ -23,8 +23,9 @@ import { TimetableDialog } from "@/components/timetable-dialog"
 import { TimeSlotDialog } from "@/components/time-slot-dialog"
 import { TimetableGroupDialog } from "@/components/timetable-group-dialog"
 import { DeleteDialog } from "@/components/delete-dialog"
+import { Switch } from "@/components/ui/switch"
 import { formatTime } from "@/lib/utils"
-import { deleteTimetable, deleteTimeSlot, checkCanEditTimetable, type DayOfWeek } from "@/app/actions/timetables"
+import { deleteTimetable, deleteTimeSlot, checkCanEditTimetable, toggleTimetableActive, type DayOfWeek } from "@/app/actions/timetables"
 import {
   PlusIcon,
   MoreVerticalIcon,
@@ -68,6 +69,7 @@ type Timetable = {
   id: string
   name: string
   description: string | null
+  isActive?: boolean
   createdById: string
   createdBy: { id: string; name: string }
   createdAt: Date
@@ -115,6 +117,9 @@ export function TimetablesClient({
   const [deletingTimetable, setDeletingTimetable] = React.useState<Timetable | null>(null)
   const [deleteSlotDialogOpen, setDeleteSlotDialogOpen] = React.useState(false)
   const [deletingSlot, setDeletingSlot] = React.useState<TimeSlot | null>(null)
+
+  // Optimistic state for toggle
+  const [optimisticActive, setOptimisticActive] = React.useState<Record<string, boolean>>({})
 
   // Check edit permission when timetable changes
   React.useEffect(() => {
@@ -331,6 +336,20 @@ export function TimetablesClient({
                           <DropdownMenuItem onClick={() => handleExportPDF(timetable)}>
                             <FileDownIcon className="mr-2 h-4 w-4" />
                             Export as PDF
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={(e) => e.preventDefault()}
+                          >
+                            <Switch
+                              className="mr-2"
+                              checked={optimisticActive[timetable.id] ?? timetable.isActive ?? true}
+                              onCheckedChange={async (checked) => {
+                                setOptimisticActive(prev => ({ ...prev, [timetable.id]: checked }))
+                                await toggleTimetableActive(timetable.id, checked)
+                                handleRefresh()
+                              }}
+                            />
+                            {(optimisticActive[timetable.id] ?? timetable.isActive ?? true) ? "Active" : "Inactive"}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem

@@ -82,6 +82,7 @@ model Timetable {
   id          String   @id @default(cuid())
   name        String
   description String?
+  isActive    Boolean  @default(true)
   createdById String
   createdBy   User     @relation("TimetableCreator", fields: [createdById], references: [id])
   createdAt   DateTime @default(now())
@@ -211,6 +212,7 @@ model Calendar {
   id          String          @id @default(cuid())
   name        String
   description String?
+  isActive    Boolean         @default(true)
   createdById String
   createdBy   User            @relation("CalendarCreator", fields: [createdById], references: [id])
   createdAt   DateTime        @default(now())

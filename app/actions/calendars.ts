@@ -52,10 +52,10 @@ async function canViewCalendar(userId: string, calendarId: string): Promise<bool
     where: { id: userId },
     select: { role: true }
   })
-  
+
   // HOD can view all calendars
   if (user?.role === "HOD") return true
-  
+
   // Check if user is in any group assigned to this calendar
   const membership = await prisma.calendarGroup.findFirst({
     where: {
@@ -67,7 +67,7 @@ async function canViewCalendar(userId: string, calendarId: string): Promise<bool
       }
     }
   })
-  
+
   return !!membership
 }
 
@@ -77,13 +77,10 @@ async function canEditCalendar(userId: string, calendarId: string): Promise<bool
     where: { id: userId },
     select: { role: true }
   })
-  
-  // Students cannot edit any calendars - view only
-  if (user?.role === "Student") return false
-  
+
   // HOD can edit all calendars
   if (user?.role === "HOD") return true
-  
+
   // Check if user has editor role in any group assigned to this calendar
   const membership = await prisma.groupMembership.findFirst({
     where: {
@@ -96,7 +93,7 @@ async function canEditCalendar(userId: string, calendarId: string): Promise<bool
       }
     }
   })
-  
+
   // Also check if default role is Editor for any group the user is in
   if (!membership) {
     const defaultEditorMembership = await prisma.groupMembership.findFirst({
@@ -112,7 +109,7 @@ async function canEditCalendar(userId: string, calendarId: string): Promise<bool
     })
     return !!defaultEditorMembership
   }
-  
+
   return !!membership
 }
 
@@ -120,7 +117,7 @@ async function canEditCalendar(userId: string, calendarId: string): Promise<bool
 export async function getCalendars() {
   const user = await getCurrentUser()
   if (!user) return []
-  
+
   if (user.role === "HOD") {
     return prisma.calendar.findMany({
       include: {
@@ -140,10 +137,11 @@ export async function getCalendars() {
       orderBy: { createdAt: "desc" }
     })
   }
-  
-  // For non-HOD users, get calendars they have access to through groups
+
+  // For non-HOD users, get active calendars they have access to through groups
   return prisma.calendar.findMany({
     where: {
+      isActive: true,  // Only show active calendars to non-HOD
       groups: {
         some: {
           group: {
@@ -176,10 +174,10 @@ export async function getCalendars() {
 export async function getCalendar(id: string) {
   const user = await getCurrentUser()
   if (!user) return null
-  
+
   const canView = await canViewCalendar(user.id, id)
   if (!canView) return null
-  
+
   return prisma.calendar.findUnique({
     where: { id },
     include: {
@@ -205,16 +203,16 @@ export async function createCalendar(data: { name: string; description?: string 
   if (!user || user.role !== "HOD") {
     return { error: "Only HOD can create calendars" }
   }
-  
+
   const trimmedName = data.name.trim()
   if (!trimmedName) {
     return { error: "Calendar name is required" }
   }
-  
+
   if (trimmedName.length > 100) {
     return { error: "Calendar name must be 100 characters or less" }
   }
-  
+
   try {
     const calendar = await prisma.calendar.create({
       data: {
@@ -235,21 +233,21 @@ export async function createCalendar(data: { name: string; description?: string 
 export async function updateCalendar(id: string, data: { name: string; description?: string }) {
   const user = await getCurrentUser()
   if (!user) return { error: "Not authenticated" }
-  
+
   const canEdit = await canEditCalendar(user.id, id)
   if (!canEdit) {
     return { error: "You don't have permission to edit this calendar" }
   }
-  
+
   const trimmedName = data.name.trim()
   if (!trimmedName) {
     return { error: "Calendar name is required" }
   }
-  
+
   if (trimmedName.length > 100) {
     return { error: "Calendar name must be 100 characters or less" }
   }
-  
+
   try {
     await prisma.calendar.update({
       where: { id },
@@ -272,7 +270,7 @@ export async function deleteCalendar(id: string) {
   if (!user || user.role !== "HOD") {
     return { error: "Only HOD can delete calendars" }
   }
-  
+
   try {
     await prisma.calendar.delete({ where: { id } })
     revalidatePath("/dashboard/calendars")
@@ -287,27 +285,27 @@ export async function deleteCalendar(id: string) {
 export async function addCalendarEvent(calendarId: string, data: CalendarEventData) {
   const user = await getCurrentUser()
   if (!user) return { error: "Not authenticated" }
-  
+
   const canEdit = await canEditCalendar(user.id, calendarId)
   if (!canEdit) {
     return { error: "You don't have permission to edit this calendar" }
   }
-  
+
   const trimmedTitle = data.title.trim()
   if (!trimmedTitle) {
     return { error: "Event title is required" }
   }
-  
+
   if (trimmedTitle.length > 200) {
     return { error: "Event title must be 200 characters or less" }
   }
-  
+
   // Validate dates
   const startDate = new Date(data.startDate)
   if (isNaN(startDate.getTime())) {
     return { error: "Invalid start date" }
   }
-  
+
   let endDate: Date | null = null
   if (data.endDate) {
     endDate = new Date(data.endDate)
@@ -318,7 +316,7 @@ export async function addCalendarEvent(calendarId: string, data: CalendarEventDa
       return { error: "End date must be after start date" }
     }
   }
-  
+
   try {
     await prisma.calendarEvent.create({
       data: {
@@ -342,35 +340,35 @@ export async function addCalendarEvent(calendarId: string, data: CalendarEventDa
 export async function updateCalendarEvent(eventId: string, data: CalendarEventData) {
   const user = await getCurrentUser()
   if (!user) return { error: "Not authenticated" }
-  
+
   // Get the event to find its calendar
   const event = await prisma.calendarEvent.findUnique({
     where: { id: eventId },
     select: { calendarId: true }
   })
-  
+
   if (!event) return { error: "Event not found" }
-  
+
   const canEdit = await canEditCalendar(user.id, event.calendarId)
   if (!canEdit) {
     return { error: "You don't have permission to edit this calendar" }
   }
-  
+
   const trimmedTitle = data.title.trim()
   if (!trimmedTitle) {
     return { error: "Event title is required" }
   }
-  
+
   if (trimmedTitle.length > 200) {
     return { error: "Event title must be 200 characters or less" }
   }
-  
+
   // Validate dates
   const startDate = new Date(data.startDate)
   if (isNaN(startDate.getTime())) {
     return { error: "Invalid start date" }
   }
-  
+
   let endDate: Date | null = null
   if (data.endDate) {
     endDate = new Date(data.endDate)
@@ -381,7 +379,7 @@ export async function updateCalendarEvent(eventId: string, data: CalendarEventDa
       return { error: "End date must be after start date" }
     }
   }
-  
+
   try {
     await prisma.calendarEvent.update({
       where: { id: eventId },
@@ -405,20 +403,20 @@ export async function updateCalendarEvent(eventId: string, data: CalendarEventDa
 export async function deleteCalendarEvent(eventId: string) {
   const user = await getCurrentUser()
   if (!user) return { error: "Not authenticated" }
-  
+
   // Get the event to find its calendar
   const event = await prisma.calendarEvent.findUnique({
     where: { id: eventId },
     select: { calendarId: true }
   })
-  
+
   if (!event) return { error: "Event not found" }
-  
+
   const canEdit = await canEditCalendar(user.id, event.calendarId)
   if (!canEdit) {
     return { error: "You don't have permission to edit this calendar" }
   }
-  
+
   try {
     await prisma.calendarEvent.delete({ where: { id: eventId } })
     revalidatePath("/dashboard/calendars")
@@ -433,50 +431,50 @@ export async function deleteCalendarEvent(eventId: string) {
 export async function removeEventFromDate(eventId: string, dateToRemove: string) {
   const user = await getCurrentUser()
   if (!user) return { error: "Not authenticated" }
-  
+
   // Get the full event
   const event = await prisma.calendarEvent.findUnique({
     where: { id: eventId },
     include: { calendar: true }
   })
-  
+
   if (!event) return { error: "Event not found" }
-  
+
   const canEdit = await canEditCalendar(user.id, event.calendarId)
   if (!canEdit) {
     return { error: "You don't have permission to edit this calendar" }
   }
-  
+
   // Helper to extract YYYY-MM-DD from a date (using UTC to avoid timezone shifts)
   const getDateString = (date: Date): string => {
     return date.toISOString().split('T')[0]
   }
-  
+
   // Parse the dateToRemove as local date components
   // Format expected: YYYY-MM-DD
   const [removeYear, removeMonth, removeDay] = dateToRemove.split('-').map(Number)
   const removeDateStr = dateToRemove // Already in YYYY-MM-DD format
-  
+
   // Get start and end date strings for comparison
   const startDateStr = getDateString(event.startDate)
   const endDateStr = event.endDate ? getDateString(event.endDate) : startDateStr
-  
+
   // Parse for date arithmetic
   const [startYear, startMonth, startDay] = startDateStr.split('-').map(Number)
   const [endYear, endMonth, endDay] = endDateStr.split('-').map(Number)
-  
+
   // Helper to create a UTC date from year, month, day
   const createUTCDate = (year: number, month: number, day: number): Date => {
     return new Date(Date.UTC(year, month - 1, day))
   }
-  
+
   // Helper to add days to a date string and return new date string
   const addDays = (dateStr: string, days: number): string => {
     const [y, m, d] = dateStr.split('-').map(Number)
     const date = new Date(Date.UTC(y, m - 1, d + days))
     return date.toISOString().split('T')[0]
   }
-  
+
   try {
     // Case 1: Single-day event - just delete it
     if (startDateStr === endDateStr) {
@@ -484,7 +482,7 @@ export async function removeEventFromDate(eventId: string, dateToRemove: string)
       revalidatePath("/dashboard/calendars")
       return { success: true }
     }
-    
+
     // Case 2: Removing start date - move start date forward
     if (removeDateStr === startDateStr) {
       const newStartDateStr = addDays(startDateStr, 1)
@@ -496,7 +494,7 @@ export async function removeEventFromDate(eventId: string, dateToRemove: string)
       revalidatePath("/dashboard/calendars")
       return { success: true }
     }
-    
+
     // Case 3: Removing end date - move end date backward
     if (removeDateStr === endDateStr) {
       const newEndDateStr = addDays(endDateStr, -1)
@@ -516,11 +514,11 @@ export async function removeEventFromDate(eventId: string, dateToRemove: string)
       revalidatePath("/dashboard/calendars")
       return { success: true }
     }
-    
+
     // Case 4: Removing middle date - split into two events
     // Update original event to end the day before removed date
     const newEndForFirstStr = addDays(removeDateStr, -1)
-    
+
     if (newEndForFirstStr === startDateStr) {
       await prisma.calendarEvent.update({
         where: { id: eventId },
@@ -533,11 +531,11 @@ export async function removeEventFromDate(eventId: string, dateToRemove: string)
         data: { endDate: createUTCDate(y, m, d) }
       })
     }
-    
+
     // Create new event starting the day after removed date
     const newStartForSecondStr = addDays(removeDateStr, 1)
     const [sy, sm, sd] = newStartForSecondStr.split('-').map(Number)
-    
+
     if (newStartForSecondStr === endDateStr) {
       await prisma.calendarEvent.create({
         data: {
@@ -562,7 +560,7 @@ export async function removeEventFromDate(eventId: string, dateToRemove: string)
         }
       })
     }
-    
+
     revalidatePath("/dashboard/calendars")
     return { success: true }
   } catch (error) {
@@ -577,7 +575,7 @@ export async function assignGroupToCalendar(calendarId: string, groupId: string)
   if (!user || user.role !== "HOD") {
     return { error: "Only HOD can assign groups to calendars" }
   }
-  
+
   try {
     await prisma.calendarGroup.create({
       data: { calendarId, groupId }
@@ -599,7 +597,7 @@ export async function removeGroupFromCalendar(calendarId: string, groupId: strin
   if (!user || user.role !== "HOD") {
     return { error: "Only HOD can remove groups from calendars" }
   }
-  
+
   try {
     await prisma.calendarGroup.delete({
       where: {
@@ -618,7 +616,7 @@ export async function removeGroupFromCalendar(calendarId: string, groupId: strin
 export async function getAllGroupsForCalendar() {
   const user = await getCurrentUser()
   if (!user || user.role !== "HOD") return []
-  
+
   return prisma.group.findMany({
     select: { id: true, title: true, defaultRole: true },
     orderBy: { title: "asc" }
@@ -630,4 +628,25 @@ export async function checkCanEditCalendar(calendarId: string) {
   const user = await getCurrentUser()
   if (!user) return false
   return canEditCalendar(user.id, calendarId)
+}
+
+// Toggle calendar active status (HOD only)
+export async function toggleCalendarActive(id: string, isActive: boolean) {
+  const user = await getCurrentUser()
+  if (!user || user.role !== "HOD") {
+    return { error: "Only HOD can toggle calendar status" }
+  }
+
+  try {
+    await prisma.calendar.update({
+      where: { id },
+      data: { isActive }
+    })
+    revalidatePath("/dashboard/calendars")
+    revalidatePath("/dashboard")
+    return { success: true }
+  } catch (error) {
+    console.error("Toggle calendar error:", error)
+    return { error: "Failed to toggle calendar status" }
+  }
 }

@@ -23,7 +23,8 @@ import { CalendarDialog } from "@/components/calendar-dialog"
 import { CalendarEventDialog } from "@/components/calendar-event-dialog"
 import { CalendarGroupDialog } from "@/components/calendar-group-dialog"
 import { DeleteDialog } from "@/components/delete-dialog"
-import { deleteCalendar, removeEventFromDate, checkCanEditCalendar } from "@/app/actions/calendars"
+import { Switch } from "@/components/ui/switch"
+import { deleteCalendar, removeEventFromDate, checkCanEditCalendar, toggleCalendarActive } from "@/app/actions/calendars"
 import { getEventTypes } from "@/app/actions/event-types"
 import {
   PlusIcon,
@@ -59,6 +60,7 @@ type Calendar = {
   id: string
   name: string
   description: string | null
+  isActive?: boolean
   createdById: string
   createdBy: { id: string; name: string }
   createdAt: Date
@@ -151,6 +153,9 @@ export function CalendarsClient({
   const [deletingCalendar, setDeletingCalendar] = React.useState<Calendar | null>(null)
   const [deleteEventDialogOpen, setDeleteEventDialogOpen] = React.useState(false)
   const [deletingEvent, setDeletingEvent] = React.useState<{ event: CalendarEvent; date: Date } | null>(null)
+
+  // Optimistic state for toggle
+  const [optimisticActive, setOptimisticActive] = React.useState<Record<string, boolean>>({})
 
   // Load event types for legend
   React.useEffect(() => {
@@ -458,6 +463,20 @@ export function CalendarsClient({
                           }}>
                             <UsersIcon className="mr-2 h-4 w-4" />
                             Manage Groups
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={(e) => e.preventDefault()}
+                          >
+                            <Switch
+                              className="mr-2"
+                              checked={optimisticActive[calendar.id] ?? calendar.isActive ?? true}
+                              onCheckedChange={async (checked) => {
+                                setOptimisticActive(prev => ({ ...prev, [calendar.id]: checked }))
+                                await toggleCalendarActive(calendar.id, checked)
+                                router.refresh()
+                              }}
+                            />
+                            {(optimisticActive[calendar.id] ?? calendar.isActive ?? true) ? "Active" : "Inactive"}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem

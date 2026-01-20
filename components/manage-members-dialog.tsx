@@ -221,7 +221,7 @@ export function ManageMembersDialog({
           <h4 className="text-sm font-medium">
             Members ({members.length})
           </h4>
-          
+
           {loading ? (
             <div className="space-y-2">
               {[1, 2, 3].map((i) => (
@@ -255,31 +255,25 @@ export function ManageMembersDialog({
                     </Badge>
                   </div>
                   <div className="flex items-center gap-2 ml-2">
-                    {member.user.role === "Student" ? (
-                      <Badge variant="secondary" className="w-24 justify-center">
-                        Viewer
-                      </Badge>
-                    ) : (
-                      <Select
-                        value={member.role}
-                        onValueChange={(value) =>
-                          handleRoleChange(member.id, value as GroupRole)
-                        }
-                        disabled={updatingId === member.id || removingId === member.id}
-                      >
-                        <SelectTrigger className="w-24">
-                          {updatingId === member.id ? (
-                            <Spinner size="sm" />
-                          ) : (
-                            <SelectValue />
-                          )}
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Viewer">Viewer</SelectItem>
-                          <SelectItem value="Editor">Editor</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    )}
+                    <Select
+                      value={member.role}
+                      onValueChange={(value) =>
+                        handleRoleChange(member.id, value as GroupRole)
+                      }
+                      disabled={updatingId === member.id || removingId === member.id}
+                    >
+                      <SelectTrigger className="w-24">
+                        {updatingId === member.id ? (
+                          <Spinner size="sm" />
+                        ) : (
+                          <SelectValue />
+                        )}
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Viewer">Viewer</SelectItem>
+                        <SelectItem value="Editor">Editor</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <Button
                       variant="ghost"
                       size="icon"

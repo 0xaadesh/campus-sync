@@ -229,7 +229,7 @@ function FacultyWiseView({ data }: { data: FacultyWithSlots[] }) {
 }
 
 function SlotWiseFacultyView({ data }: { data: SlotWithFreeFaculty[] }) {
-  const [selectedDay, setSelectedDay] = React.useState<DayOfWeek>("Monday")
+  const [selectedDay, setSelectedDay] = React.useState<DayOfWeek>(getTodayDayOfWeek)
 
   const slotsForDay = data.filter(s => s.day === selectedDay)
 
@@ -261,13 +261,10 @@ function SlotWiseFacultyView({ data }: { data: SlotWithFreeFaculty[] }) {
           {slotsForDay.map((slot, idx) => (
             <Card key={`${slot.day}-${slot.startTime}-${idx}`}>
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
-                  </CardTitle>
-                  <Badge variant="outline">{slot.slotTypeName}</Badge>
-                </div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Free Faculty */}
@@ -311,8 +308,9 @@ function SlotWiseFacultyView({ data }: { data: SlotWithFreeFaculty[] }) {
             </Card>
           ))}
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   )
 }
 
@@ -448,7 +446,7 @@ function RoomWiseView({ data }: { data: RoomWithSlots[] }) {
 }
 
 function SlotWiseRoomView({ data }: { data: SlotWithFreeRooms[] }) {
-  const [selectedDay, setSelectedDay] = React.useState<DayOfWeek>("Monday")
+  const [selectedDay, setSelectedDay] = React.useState<DayOfWeek>(getTodayDayOfWeek)
 
   const slotsForDay = data.filter(s => s.day === selectedDay)
 
@@ -480,13 +478,10 @@ function SlotWiseRoomView({ data }: { data: SlotWithFreeRooms[] }) {
           {slotsForDay.map((slot, idx) => (
             <Card key={`${slot.day}-${slot.startTime}-${idx}`}>
               <CardHeader className="pb-3">
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
-                  </CardTitle>
-                  <Badge variant="outline">{slot.slotTypeName}</Badge>
-                </div>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  {formatTime(slot.startTime)} - {formatTime(slot.endTime)}
+                </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 {/* Free Rooms */}
@@ -530,8 +525,9 @@ function SlotWiseRoomView({ data }: { data: SlotWithFreeRooms[] }) {
             </Card>
           ))}
         </div>
-      )}
-    </div>
+      )
+      }
+    </div >
   )
 }
 
