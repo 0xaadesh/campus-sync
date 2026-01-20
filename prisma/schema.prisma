@@ -263,3 +263,13 @@ model PasswordResetToken {
   attempts  Int      @default(0)
   createdAt DateTime @default(now())
 }
+
+// Email Verification Token for signup confirmation
+model EmailVerificationToken {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  token     String   // Hashed 6-digit OTP
+  expiresAt DateTime
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+}

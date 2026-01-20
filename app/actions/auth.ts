@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs"
 import { signIn } from "@/auth"
 import { Role } from "@prisma/client"
 import { redirect } from "next/navigation"
+import { sendVerificationOtpAction } from "./verify-email"
 
 export async function signupAction(prevState: any, formData: FormData) {
   const name = formData.get("name") as string
@@ -46,17 +47,14 @@ export async function signupAction(prevState: any, formData: FormData) {
         email,
         role,
         password: hashedPassword,
+        // emailVerified is null by default - requires OTP verification
       },
     })
 
-    // Sign in the user after signup
-    await signIn("credentials", {
-      email,
-      password,
-      redirect: false,
-    })
+    // Send verification OTP and redirect to verify page
+    await sendVerificationOtpAction(email)
 
-    redirect("/dashboard")
+    redirect("/verify-email")
   } catch (error: any) {
     // Re-throw redirect errors - they are expected
     if (error?.digest?.startsWith("NEXT_REDIRECT")) {
@@ -73,6 +71,18 @@ export async function loginAction(prevState: any, formData: FormData) {
 
   if (!email || !password) {
     return { error: "Email and password are required" }
+  }
+
+  // Check if user exists and if email is verified
+  const user = await prisma.user.findUnique({
+    where: { email: email.toLowerCase().trim() },
+    select: { emailVerified: true },
+  })
+
+  if (user && !user.emailVerified) {
+    // Send new OTP and redirect to verify page
+    await sendVerificationOtpAction(email)
+    redirect("/verify-email")
   }
 
   try {
@@ -104,7 +114,7 @@ export async function getCurrentUser() {
   if (!session?.user?.email) {
     return null
   }
-  
+
   // Fetch additional user data from database
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
@@ -117,20 +127,20 @@ export async function getCurrentUser() {
       status: true,
     }
   })
-  
+
   return user
 }
 
 export async function updateUserName(name: string) {
   const { auth } = await import("@/auth")
   const session = await auth()
-  
+
   if (!session?.user?.email) {
     return { error: "Not authenticated" }
   }
 
   const trimmedName = name.trim()
-  
+
   if (!trimmedName) {
     return { error: "Name is required" }
   }
@@ -154,7 +164,7 @@ export async function updateUserName(name: string) {
 export async function updateUserAvailability(availability: "Active" | "Away" | "Busy") {
   const { auth } = await import("@/auth")
   const session = await auth()
-  
+
   if (!session?.user?.email) {
     return { error: "Not authenticated" }
   }
@@ -174,13 +184,13 @@ export async function updateUserAvailability(availability: "Active" | "Away" | "
 export async function updateUserStatus(status: string) {
   const { auth } = await import("@/auth")
   const session = await auth()
-  
+
   if (!session?.user?.email) {
     return { error: "Not authenticated" }
   }
 
   const trimmedStatus = status.trim()
-  
+
   if (trimmedStatus.length > 100) {
     return { error: "Status must be 100 characters or less" }
   }
