@@ -24,6 +24,7 @@ A comprehensive campus management system built with Next.js 16, Prisma 5, NextAu
 - **Create & Manage Timetables**
   - Create multiple timetables with custom names and descriptions
   - Assign timetables to groups
+  - **Active/Inactive Status**: Toggle timetable visibility for students
   - Full CRUD operations for timetables
 
 - **Time Slot Management**
@@ -72,6 +73,7 @@ A comprehensive campus management system built with Next.js 16, Prisma 5, NextAu
 - **Create & Manage Calendars**
   - Create calendars for academic events
   - Assign calendars to groups
+  - **Active/Inactive Status**: Toggle calendar visibility
   - Full CRUD operations for HOD
 
 - **Event Management**
@@ -98,6 +100,15 @@ A comprehensive campus management system built with Next.js 16, Prisma 5, NextAu
 
 - **Profile Management**
   - View and edit profile information
+
+### 🎨 UI & UX Enhancements
+
+- **Modern Landing Page**
+  - **Hyperspace Background**: Dynamic animated background for key sections
+  - **Discrete Tabs**: Interactive team showcase with GitHub avatars
+  - **Particles Integration**: (available for custom backgrounds)
+- **Optimistic Updates**: Instant UI feedback for state changes (e.g., toggles)
+- **Responsive Design**: Mobile-first approach for all dashboards
   - Update name and status
   - Change availability status
 
