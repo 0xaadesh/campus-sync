@@ -124,24 +124,16 @@ export default async function LandingPage() {
             },
             {
               author: {
-                name: "Prof. Vishal Badgujar",
-                handle: "Professor",
+                name: "Mr. Vishal Badgujar",
+                handle: "Assistant Professor",
                 avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQG9PV54aUfKiQjG67GGSRl-z6LhMWCJKl_nQ&s",
               },
               text: "What I appreciate most about CampusSync is its simplicity. Updating my availability and checking daily schedules takes seconds. It has eliminated countless WhatsApp messages and emails, allowing me to focus more on teaching rather than coordination.",
             },
             {
               author: {
-                name: "Prof. Charul Singh",
-                handle: "Professor",
-                avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKtZ7Gp8unhP04UbaWuVqKotaul394SeOXqA&s",
-              },
-              text: "CampusSync has made timetable management far more efficient for faculty. The ability to view room and faculty availability in real time helps avoid clashes and improves overall planning. It feels purpose-built for modern academic workflows.",
-            },
-            {
-              author: {
-                name: "Prof. Sonal Jain",
-                handle: "Professor",
+                name: "Mrs. Sonal Jain",
+                handle: "Assistant Professor",
                 avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQIzxRzQPp6lyIQyi8olsThWMOBe8TGOgCFGg&s",
               },
               text: "With CampusSync, coordinating schedules across multiple batches is no longer a challenge. The centralized dashboard and clear visibility into timetables have made academic coordination smoother, more reliable, and far less time-consuming.",
