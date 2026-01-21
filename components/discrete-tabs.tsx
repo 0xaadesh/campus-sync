@@ -3,7 +3,7 @@
 import { SetStateAction, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
-import { Github } from "lucide-react";
+import { Github, Linkedin } from "lucide-react";
 
 const Calendar: React.FC<React.SVGProps<SVGSVGElement> & { size?: number }> = ({
   className,
@@ -80,21 +80,34 @@ const Inbox: React.FC<React.SVGProps<SVGSVGElement> & { size?: number }> = ({
   );
 };
 
-const TABS = [
-  { id: "Aadesh", title: "Aadesh Gavhane", url: "https://github.com/0xaadesh", avatar: "https://github.com/0xaadesh.png" },
-  { id: "Kartika", title: "Kartika Thite", url: "https://github.com/Kartika2005", avatar: "https://github.com/Kartika2005.png" },
-  { id: "Pooja", title: "Pooja Maskare", url: "https://github.com/poojamaskare", avatar: "https://github.com/poojamaskare.png" },
-  { id: "Siddhi", title: "Siddhi Jadhav", url: "https://github.com/SiddhiJadhav13", avatar: "https://github.com/SiddhiJadhav13.png" },
+export interface TabItem {
+  id: string;
+  title: string;
+  url: string;
+  avatar: string;
+  linkedinUrl?: string;
+}
+
+const DEFAULT_TABS: TabItem[] = [
+  { id: "Aadesh", title: "Aadesh Gavhane", url: "https://github.com/0xaadesh", avatar: "https://github.com/0xaadesh.png", linkedinUrl: "https://www.linkedin.com/in/aadeshgavhane/" },
+  { id: "Kartika", title: "Kartika Thite", url: "https://github.com/Kartika2005", avatar: "https://github.com/Kartika2005.png", linkedinUrl: "https://www.linkedin.com/in/kartika-thite-70288130a/" },
+  { id: "Pooja", title: "Pooja Maskare", url: "https://github.com/poojamaskare", avatar: "https://github.com/poojamaskare.png", linkedinUrl: "https://www.linkedin.com/in/pooja-maskare/" },
+  { id: "Siddhi", title: "Siddhi Jadhav", url: "https://github.com/SiddhiJadhav13", avatar: "https://github.com/SiddhiJadhav13.png", linkedinUrl: "https://www.linkedin.com/in/siddhi-jadhav-a1252827a/" },
 ];
 
-export default function DiscreteTabs() {
-  const [activeButton, setActiveButton] = useState(TABS[0].id);
-  const activeTab = TABS.find((t) => t.id === activeButton);
+interface DiscreteTabsProps {
+  tabs?: TabItem[];
+  linkType?: "github" | "linkedin" | "both";
+}
+
+export default function DiscreteTabs({ tabs = DEFAULT_TABS, linkType = "both" }: DiscreteTabsProps) {
+  const [activeButton, setActiveButton] = useState(tabs[0]?.id || "");
+  const activeTab = tabs.find((t) => t.id === activeButton);
 
   return (
     <div className="flex flex-col items-center gap-6">
       <div className="flex gap-2 sm:gap-4 items-center flex-wrap justify-center">
-        {TABS.map((tab) => (
+        {tabs.map((tab) => (
           <Button
             key={tab.id}
             id={tab.id}
@@ -110,16 +123,41 @@ export default function DiscreteTabs() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           key={activeTab.id}
+          className="flex gap-4 items-center"
         >
-          <a
-            href={activeTab.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2"
-          >
-            <Github className="w-4 h-4" />
-            View {activeTab.title.split(' ')[0]}'s GitHub
-          </a>
+          {(linkType === "github" || linkType === "both") && (
+            <a
+              href={activeTab.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2"
+            >
+              <Github className="w-4 h-4" />
+              GitHub
+            </a>
+          )}
+          {(linkType === "linkedin" || linkType === "both") && activeTab.linkedinUrl && (
+            <a
+              href={activeTab.linkedinUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2"
+            >
+              <Linkedin className="w-4 h-4" />
+              LinkedIn
+            </a>
+          )}
+          {linkType === "linkedin" && !activeTab.linkedinUrl && (
+            <a
+              href={activeTab.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted-foreground hover:text-primary transition-colors text-sm flex items-center gap-2"
+            >
+              <Linkedin className="w-4 h-4" />
+              LinkedIn
+            </a>
+          )}
         </motion.div>
       )}
     </div>

@@ -150,6 +150,18 @@ export default async function LandingPage() {
           <div className="relative z-10 container mx-auto px-6 text-center text-foreground">
             <h2 className="text-3xl font-bold mb-8">Developed by</h2>
             <DiscreteTabs />
+            <p className="mt-10 text-lg text-muted-foreground mb-4">Under the guidance of</p>
+            <DiscreteTabs
+              tabs={[
+                {
+                  id: "Vishal",
+                  title: "Mr. Vishal Badgujar",
+                  url: "https://www.linkedin.com/in/vishalbadgujar/",
+                  avatar: "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQG9PV54aUfKiQjG67GGSRl-z6LhMWCJKl_nQ&s"
+                }
+              ]}
+              linkType="linkedin"
+            />
           </div>
         </section>
 
