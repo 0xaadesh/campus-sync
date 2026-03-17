@@ -42,7 +42,7 @@ export function SignupForm({ allowHod, allowFaculty }: SignupFormProps) {
 
     // Create a wrapped action that appends the domain
     const handleSubmit = async (formData: FormData) => {
-        const usernameValue = formData.get("username") as string
+        const usernameValue = (formData.get("username") as string).replace(/@.*$/, "")
         formData.set("email", usernameValue + EMAIL_DOMAIN)
         formData.delete("username")
         return formAction(formData)
@@ -81,9 +81,10 @@ export function SignupForm({ allowHod, allowFaculty }: SignupFormProps) {
                                             id="username"
                                             name="username"
                                             type="text"
-                                            placeholder="username"
+                                            placeholder="e.g. 24204017"
                                             value={username}
-                                            onChange={(e) => setUsername(e.target.value)}
+                                            onChange={(e) => setUsername(e.target.value.replace(/@.*$/, ""))}
+                                            onKeyDown={(e) => { if (e.key === "@") e.preventDefault() }}
                                             className="rounded-r-none border-r-0"
                                             required
                                         />

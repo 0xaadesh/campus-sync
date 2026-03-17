@@ -4,6 +4,8 @@ import { SignupForm } from "./signup-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 
+export const dynamic = "force-dynamic"
+
 export default function SignupPage() {
   // Check if signup is completely disabled
   const isSignupDisabled = process.env.DISABLE_SIGNUP === "true"

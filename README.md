@@ -177,10 +177,59 @@ A comprehensive campus management system built with Next.js 16, Prisma 5, NextAu
 ### Prerequisites
 
 - Node.js 18+ or Bun
-- Docker and Docker Compose (for local PostgreSQL)
-- Or a Neon database account (for cloud PostgreSQL)
+- Docker and Docker Compose
 
-### Setup
+### Quick Start with Docker (recommended)
+
+The fastest way to run the entire app — no local Node.js or database setup required.
+
+1. **Clone the repository**
+
+```bash
+git clone https://github.com/0xaadesh/campus-sync
+cd campus-sync
+```
+
+2. **Create a `.env` file** from the template
+
+```bash
+cp .env.example .env
+```
+
+Fill in the required values (at minimum `NEXTAUTH_SECRET` and email settings):
+
+```env
+NEXTAUTH_SECRET="your-secret-key"   # generate with: openssl rand -base64 32
+EMAIL_SERVER_USER="your-email@gmail.com"
+EMAIL_SERVER_PASSWORD="your-app-password"
+```
+
+> The `DATABASE_URL` is handled automatically by Docker Compose — you do not need to set it in `.env`.
+
+3. **Build and start**
+
+```bash
+docker compose up --build
+```
+
+The app will be available at [http://localhost:3000](http://localhost:3000). Prisma migrations run automatically on startup.
+
+To run in the background:
+
+```bash
+docker compose up --build -d
+```
+
+To stop:
+
+```bash
+docker compose down       # keeps database data
+docker compose down -v    # removes database data
+```
+
+### Manual Setup (without Docker for the app)
+
+If you prefer to run the Next.js app directly on your machine:
 
 1. **Clone the repository**
 
@@ -230,7 +279,7 @@ openssl rand -base64 32
 4. **Start PostgreSQL with Docker** (if using local database)
 
 ```bash
-docker-compose up -d
+docker compose up postgres -d
 ```
 
 5. **Run Prisma migrations**
@@ -318,7 +367,11 @@ If you need to migrate your local PostgreSQL data to Neon:
 │   └── migrations/        # Migration files
 ├── scripts/               # Utility scripts
 │   └── migrate-to-neon.ts # Database migration script
-└── types/                 # TypeScript types
+├── types/                 # TypeScript types
+├── Dockerfile             # Multi-stage production build
+├── docker-compose.yml     # App + PostgreSQL orchestration
+├── .dockerignore          # Docker build context exclusions
+└── .env.example           # Environment variable template
 ```
 
 ## Configuration
@@ -406,6 +459,48 @@ bunx prisma migrate reset  # Reset database (dev only)
 
 ## Deployment
 
+### Deploying with Docker
+
+The app ships with a production-ready `Dockerfile` (multi-stage build) and `docker-compose.yml`.
+
+**Architecture:**
+
+| Container | Image | Purpose |
+|-----------|-------|---------|
+| `campus_sync_app` | Built from `Dockerfile` | Next.js standalone server |
+| `campus_sync_postgres` | `postgres:17-alpine` | PostgreSQL database |
+
+**Production deployment:**
+
+1. Copy `.env.example` to `.env` and fill in your secrets
+2. Build and run:
+   ```bash
+   docker compose up --build -d
+   ```
+3. Prisma migrations are applied automatically on container startup
+4. The app listens on port `3000`
+
+**Rebuilding after code changes:**
+
+```bash
+docker compose up --build -d
+```
+
+**Applying `.env` changes** (no rebuild needed):
+
+```bash
+docker compose up -d
+```
+
+> **Note:** `docker compose restart` does **not** pick up `.env` or `docker-compose.yml` changes. Always use `docker compose up -d` instead.
+
+**Viewing logs:**
+
+```bash
+docker compose logs -f app       # app logs
+docker compose logs -f postgres  # database logs
+```
+
 ### Deploying to Vercel
 
 1. **Push your code to GitHub**
@@ -447,6 +542,14 @@ bunx prisma migrate reset  # Reset database (dev only)
 DATABASE_URL="postgresql://user:password@localhost:5432/campus_sync"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-key"
+```
+
+**Docker (.env — DATABASE_URL is set automatically by Compose):**
+```env
+NEXTAUTH_SECRET="your-secret-key"
+NEXTAUTH_URL="http://localhost:3000"
+EMAIL_SERVER_USER="your-email@gmail.com"
+EMAIL_SERVER_PASSWORD="your-app-password"
 ```
 
 **Production (Vercel Environment Variables):**

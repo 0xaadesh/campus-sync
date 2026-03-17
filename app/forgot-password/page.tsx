@@ -143,7 +143,7 @@ export default function ForgotPasswordPage() {
                     {step === "email" && (
                         <form
                             action={async (formData: FormData) => {
-                                const usernameValue = formData.get("username") as string
+                                const usernameValue = (formData.get("username") as string).replace(/@.*$/, "")
                                 formData.set("email", usernameValue + EMAIL_DOMAIN)
                                 formData.delete("username")
                                 return emailAction(formData)
@@ -159,9 +159,10 @@ export default function ForgotPasswordPage() {
                                                 id="username"
                                                 name="username"
                                                 type="text"
-                                                placeholder="username"
+                                                placeholder="e.g. 24204017"
                                                 value={username}
-                                                onChange={(e) => setUsername(e.target.value)}
+                                                onChange={(e) => setUsername(e.target.value.replace(/@.*$/, ""))}
+                                                onKeyDown={(e) => { if (e.key === "@") e.preventDefault() }}
                                                 className="rounded-r-none border-r-0"
                                                 required
                                             />
