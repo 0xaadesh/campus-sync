@@ -21,7 +21,7 @@ const FEATURES = [
     index: "01",
     icon: CalendarRange,
     title: "Timetables",
-    description: "Lay out the week once. Publish it, or export it as a PDF.",
+    description: "Lay out the week once, then publish it to everyone.",
     span: "md:col-span-5",
   },
   {
