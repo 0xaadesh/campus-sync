@@ -181,7 +181,7 @@ A comprehensive campus management system built with Next.js 16, Prisma 5, NextAu
 
 ### Quick Start with Docker (recommended)
 
-The fastest way to run the entire app — no local Node.js or database setup required.
+The fastest way to run the entire app, with no local Node.js or database setup required.
 
 1. **Clone the repository**
 
@@ -204,7 +204,7 @@ EMAIL_SERVER_USER="your-email@gmail.com"
 EMAIL_SERVER_PASSWORD="your-app-password"
 ```
 
-> The `DATABASE_URL` is handled automatically by Docker Compose — you do not need to set it in `.env`.
+> The `DATABASE_URL` is handled automatically by Docker Compose, so you do not need to set it in `.env`.
 
 3. **Build and start**
 
@@ -542,7 +542,7 @@ NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="your-secret-key"
 ```
 
-**Docker (.env — DATABASE_URL is set automatically by Compose):**
+**Docker (.env, where DATABASE_URL is set automatically by Compose):**
 ```env
 NEXTAUTH_SECRET="your-secret-key"
 NEXTAUTH_URL="http://localhost:3000"

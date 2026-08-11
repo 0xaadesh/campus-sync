@@ -391,7 +391,7 @@ export function ProfileClient({ user, preferences }: ProfileClientProps) {
                   Select the batches you belong to. Only schedules for selected batches will appear on your dashboard.
                   {selectedBatches.size === 0 && (
                     <span className="block mt-1 text-xs text-muted-foreground/70">
-                      No batches selected — showing all schedules
+                      No batches selected, showing all schedules
                     </span>
                   )}
                 </CardDescription>
