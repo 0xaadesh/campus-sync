@@ -5,6 +5,11 @@ import { revalidatePath } from "next/cache"
 
 export async function createSlotType(prevState: any, formData: FormData) {
   const name = formData.get("name") as string
+  const isBreak = formData.get("isBreak") === "true"
+  // A break never carries a subject, room or faculty, so nothing can be required for it
+  const requiresSubject = !isBreak && formData.get("requiresSubject") === "true"
+  const requiresRoom = !isBreak && formData.get("requiresRoom") === "true"
+  const requiresFaculty = !isBreak && formData.get("requiresFaculty") === "true"
 
   // Validation
   if (!name) {
@@ -22,7 +27,7 @@ export async function createSlotType(prevState: any, formData: FormData) {
 
   try {
     await prisma.slotType.create({
-      data: { name: trimmedName },
+      data: { name: trimmedName, isBreak, requiresSubject, requiresRoom, requiresFaculty },
     })
     revalidatePath("/dashboard/slot-types")
     return { success: true }
@@ -41,6 +46,11 @@ export async function createSlotType(prevState: any, formData: FormData) {
 export async function updateSlotType(prevState: any, formData: FormData) {
   const id = formData.get("id") as string
   const name = formData.get("name") as string
+  const isBreak = formData.get("isBreak") === "true"
+  // A break never carries a subject, room or faculty, so nothing can be required for it
+  const requiresSubject = !isBreak && formData.get("requiresSubject") === "true"
+  const requiresRoom = !isBreak && formData.get("requiresRoom") === "true"
+  const requiresFaculty = !isBreak && formData.get("requiresFaculty") === "true"
 
   // Validation
   if (!id || !name) {
@@ -59,7 +69,7 @@ export async function updateSlotType(prevState: any, formData: FormData) {
   try {
     await prisma.slotType.update({
       where: { id },
-      data: { name: trimmedName },
+      data: { name: trimmedName, isBreak, requiresSubject, requiresRoom, requiresFaculty },
     })
     revalidatePath("/dashboard/slot-types")
     return { success: true }

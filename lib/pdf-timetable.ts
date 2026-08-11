@@ -6,7 +6,7 @@ export type TimeSlotForPDF = {
   startTime: string
   endTime: string
   subject: { id: string; name: string; shortName: string } | null
-  slotType: { id: string; name: string }
+  slotType: { id: string; name: string; isBreak: boolean }
   room: { id: string; number: string } | null
   faculty: { id: string; name: string } | null
   batch: { id: string; name: string } | null
@@ -48,8 +48,8 @@ export function generateFacultyAbbreviation(name: string): string {
 /**
  * Check if a slot type represents a break
  */
-export function isBreakSlot(slotTypeName: string): boolean {
-  return slotTypeName.toLowerCase().includes("break")
+export function isBreakSlot(slotType: { isBreak: boolean }): boolean {
+  return slotType.isBreak
 }
 
 /**

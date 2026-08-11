@@ -192,7 +192,7 @@ export function TimetablePDF({ timetable }: TimetablePDFProps) {
             )
             
             // Check if there's a break at this time
-            const breakSlot = slotsAtTime.find(slot => isBreakSlot(slot.slotType.name))
+            const breakSlot = slotsAtTime.find(slot => isBreakSlot(slot.slotType))
             
             if (breakSlot) {
               // Show break in this cell
@@ -206,7 +206,7 @@ export function TimetablePDF({ timetable }: TimetablePDFProps) {
             }
             
             // Get regular (non-break) slots
-            const regularSlotsAtTime = slotsAtTime.filter(slot => !isBreakSlot(slot.slotType.name))
+            const regularSlotsAtTime = slotsAtTime.filter(slot => !isBreakSlot(slot.slotType))
             
             if (regularSlotsAtTime.length === 0) {
               return (

@@ -31,7 +31,14 @@ import { cn } from "@/lib/utils"
 import { addTimeSlot, updateTimeSlot, type DayOfWeek, type TimeSlotData } from "@/app/actions/timetables"
 
 type Subject = { id: string; name: string; shortName: string }
-type SlotType = { id: string; name: string }
+type SlotType = {
+  id: string
+  name: string
+  isBreak: boolean
+  requiresSubject: boolean
+  requiresRoom: boolean
+  requiresFaculty: boolean
+}
 type Room = { id: string; number: string }
 type Faculty = { id: string; name: string; email: string }
 type Batch = { id: string; name: string }
@@ -92,12 +99,16 @@ export function TimeSlotDialog({
 
   const isEdit = !!initialData
 
-  // Check if selected slot type is "Break" (case-insensitive)
-  const isBreakSlot = React.useMemo(() => {
-    if (!selectedSlotType) return false
-    const slotType = slotTypes.find((s) => s.id === selectedSlotType)
-    return slotType?.name.toLowerCase() === "break"
-  }, [selectedSlotType, slotTypes])
+  // What a slot may and must carry is defined on the slot type itself
+  const activeSlotType = React.useMemo(
+    () => slotTypes.find((s) => s.id === selectedSlotType) ?? null,
+    [selectedSlotType, slotTypes]
+  )
+
+  const isBreakSlot = activeSlotType?.isBreak ?? false
+  const requiresSubject = !isBreakSlot && (activeSlotType?.requiresSubject ?? false)
+  const requiresRoom = !isBreakSlot && (activeSlotType?.requiresRoom ?? false)
+  const requiresFaculty = !isBreakSlot && (activeSlotType?.requiresFaculty ?? false)
 
   // Clear other fields when switching to break
   React.useEffect(() => {
@@ -156,19 +167,17 @@ export function TimeSlotDialog({
       newErrors.slotType = "Slot type is required"
     }
 
-    // Only validate these fields if NOT a break slot
-    if (!isBreakSlot) {
-      if (!selectedSubject) {
-        newErrors.subject = "Subject is required"
-      }
+    // Each field is required only if the selected slot type says so
+    if (requiresSubject && !selectedSubject) {
+      newErrors.subject = "Subject is required"
+    }
 
-      if (!selectedRoom) {
-        newErrors.room = "Room is required"
-      }
+    if (requiresRoom && !selectedRoom) {
+      newErrors.room = "Room is required"
+    }
 
-      if (!selectedFaculty) {
-        newErrors.faculty = "Faculty is required"
-      }
+    if (requiresFaculty && !selectedFaculty) {
+      newErrors.faculty = "Faculty is required"
     }
 
     setErrors(newErrors)
@@ -292,7 +301,14 @@ export function TimeSlotDialog({
 
             {/* Subject Combobox */}
             <Field>
-              <FieldLabel>Subject {isBreakSlot && <span className="text-muted-foreground text-xs">(not required for break)</span>}</FieldLabel>
+              <FieldLabel>
+                Subject{" "}
+                {isBreakSlot ? (
+                  <span className="text-muted-foreground text-xs">(not used for a break)</span>
+                ) : (
+                  !requiresSubject && <span className="text-muted-foreground text-xs">(optional)</span>
+                )}
+              </FieldLabel>
               <FieldContent>
                 <Popover open={subjectOpen} onOpenChange={setSubjectOpen}>
                   <PopoverTrigger asChild>
@@ -397,7 +413,14 @@ export function TimeSlotDialog({
 
             {/* Room Combobox */}
             <Field>
-              <FieldLabel>Room {isBreakSlot && <span className="text-muted-foreground text-xs">(not required for break)</span>}</FieldLabel>
+              <FieldLabel>
+                Room{" "}
+                {isBreakSlot ? (
+                  <span className="text-muted-foreground text-xs">(not used for a break)</span>
+                ) : (
+                  !requiresRoom && <span className="text-muted-foreground text-xs">(optional)</span>
+                )}
+              </FieldLabel>
               <FieldContent>
                 <Popover open={roomOpen} onOpenChange={setRoomOpen}>
                   <PopoverTrigger asChild>
@@ -449,7 +472,14 @@ export function TimeSlotDialog({
 
             {/* Faculty Combobox */}
             <Field>
-              <FieldLabel>Faculty {isBreakSlot && <span className="text-muted-foreground text-xs">(not required for break)</span>}</FieldLabel>
+              <FieldLabel>
+                Faculty{" "}
+                {isBreakSlot ? (
+                  <span className="text-muted-foreground text-xs">(not used for a break)</span>
+                ) : (
+                  !requiresFaculty && <span className="text-muted-foreground text-xs">(optional)</span>
+                )}
+              </FieldLabel>
               <FieldContent>
                 <Popover open={facultyOpen} onOpenChange={setFacultyOpen}>
                   <PopoverTrigger asChild>

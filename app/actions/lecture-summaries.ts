@@ -171,7 +171,7 @@ export async function getFacultyScheduleWithSummaries(dateStr: string): Promise<
           facultyId: slot.facultyId,
           batchName: slot.batch?.name || null,
           batchId: slot.batchId,
-          isBreak: !slot.subjectId && !slot.roomId,
+          isBreak: slot.slotType.isBreak,
           summary: summary ? {
             id: summary.id,
             content: summary.content,

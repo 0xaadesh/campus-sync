@@ -2,6 +2,16 @@
 
 import { prisma } from "@/lib/prisma"
 import { auth } from "@/auth"
+import { compareByName } from "@/lib/person-name"
+import {
+  mergeIntervals,
+  subtractIntervals,
+  intervalsOverlap,
+  splitIntoAtoms,
+  toInterval,
+  toTimeString,
+  type Interval
+} from "@/lib/time-intervals"
 
 export type DayOfWeek = "Monday" | "Tuesday" | "Wednesday" | "Thursday" | "Friday" | "Saturday" | "Sunday"
 
@@ -24,6 +34,8 @@ export interface FacultyInfo {
   email: string
   availability: "Active" | "Away" | "Busy"
   status: string | null
+  /** Whether this person teaches any slot in an active timetable */
+  hasScheduledSlots: boolean
 }
 
 export interface RoomInfo {
@@ -69,6 +81,126 @@ function sortByDayAndTime<T extends { day: DayOfWeek; startTime: string }>(items
   })
 }
 
+
+type SlotDef = { day: string; startTime: string; endTime: string }
+
+
+/**
+ * Break the day into the smallest non-overlapping periods implied by all the
+ * period definitions, so a 08:10-10:00 lab block and the 09:05-10:00 lecture
+ * inside it become one readable sequence instead of two overlapping rows.
+ */
+function buildAtomicSlots(slotDefs: SlotDef[]): { day: DayOfWeek; startTime: string; endTime: string }[] {
+  const byDay = new Map<DayOfWeek, Interval[]>()
+
+  for (const def of slotDefs) {
+    const interval = toInterval(def.startTime, def.endTime)
+    if (!interval) continue
+    const day = def.day as DayOfWeek
+    const existing = byDay.get(day)
+    if (existing) {
+      existing.push(interval)
+    } else {
+      byDay.set(day, [interval])
+    }
+  }
+
+  const atoms: { day: DayOfWeek; startTime: string; endTime: string }[] = []
+  for (const [day, intervals] of byDay) {
+    for (const atom of splitIntoAtoms(intervals)) {
+      atoms.push({ day, startTime: toTimeString(atom.start), endTime: toTimeString(atom.end) })
+    }
+  }
+
+  return atoms
+}
+
+/** Someone who set themselves Away or Busy should not head up a list of free faculty. */
+const AVAILABILITY_RANK: Record<"Active" | "Away" | "Busy", number> = {
+  Active: 0,
+  Busy: 1,
+  Away: 2
+}
+
+function sortFaculty(faculty: FacultyInfo[]): FacultyInfo[] {
+  return [...faculty].sort((a, b) => {
+    const rank = AVAILABILITY_RANK[a.availability] - AVAILABILITY_RANK[b.availability]
+    if (rank !== 0) return rank
+    return compareByName(a, b)
+  })
+}
+/**
+ * The teachable window of each day: every non-break period definition, merged.
+ * Overlapping definitions from different timetables (a 2-period lab block and the
+ * single lectures covering the same time) collapse into one continuous window, and
+ * breaks stay excluded because break slots are filtered out of the query.
+ */
+function buildDayWindows(slotDefs: SlotDef[]): Map<DayOfWeek, Interval[]> {
+  const byDay = new Map<DayOfWeek, Interval[]>()
+
+  for (const def of slotDefs) {
+    const interval = toInterval(def.startTime, def.endTime)
+    if (!interval) continue
+    const day = def.day as DayOfWeek
+    const existing = byDay.get(day)
+    if (existing) {
+      existing.push(interval)
+    } else {
+      byDay.set(day, [interval])
+    }
+  }
+
+  for (const [day, intervals] of byDay) {
+    byDay.set(day, mergeIntervals(intervals))
+  }
+
+  return byDay
+}
+
+/**
+ * Free time = the day's teachable window minus everything this person or room is
+ * booked for. Returns contiguous blocks, so a booking never leaves an overlapping
+ * period behind still claiming to be free.
+ */
+function computeFreeSlots(
+  dayWindows: Map<DayOfWeek, Interval[]>,
+  occupiedSlots: { day: DayOfWeek; startTime: string; endTime: string }[]
+): SlotInfo[] {
+  const busyByDay = new Map<DayOfWeek, Interval[]>()
+  for (const slot of occupiedSlots) {
+    const interval = toInterval(slot.startTime, slot.endTime)
+    if (!interval) continue
+    const existing = busyByDay.get(slot.day)
+    if (existing) {
+      existing.push(interval)
+    } else {
+      busyByDay.set(slot.day, [interval])
+    }
+  }
+
+  const free: SlotInfo[] = []
+
+  for (const [day, windows] of dayWindows) {
+    for (const gap of subtractIntervals(windows, busyByDay.get(day) ?? [])) {
+      const startTime = toTimeString(gap.start)
+      const endTime = toTimeString(gap.end)
+      free.push({
+        id: `free-${day}-${startTime}-${endTime}`,
+        startTime,
+        endTime,
+        slotTypeName: "",
+        day,
+        timetableName: "",
+        roomNumber: null,
+        subjectShortName: null,
+        subjectName: null,
+        batchName: null
+      })
+    }
+  }
+
+  return free
+}
 export async function getFacultyAvailability(): Promise<{
   facultyWise: FacultyWithSlots[]
   slotWise: SlotWithFreeFaculty[]
@@ -90,13 +222,16 @@ export async function getFacultyAvailability(): Promise<{
       availability: true,
       status: true,
     },
-    orderBy: { name: "asc" }
   })
+
+  // Sorted by surname - the stored name carries an honorific, so ordering on the
+  // raw string would group every "Dr." together instead of sorting alphabetically
+  allFaculty.sort(compareByName)
 
   // Get all time slots with faculty assignments (from active timetables only)
   const allSlots = await prisma.timeSlot.findMany({
     where: {
-      slotType: { name: { not: "Break" } },
+      slotType: { isBreak: false },
       timetable: { isActive: true }
     },
     include: {
@@ -112,7 +247,7 @@ export async function getFacultyAvailability(): Promise<{
   // Get unique slot definitions (day + time combinations from active timetables)
   const uniqueSlotDefs = await prisma.timeSlot.findMany({
     where: {
-      slotType: { name: { not: "Break" } },
+      slotType: { isBreak: false },
       timetable: { isActive: true }
     },
     select: {
@@ -124,8 +259,26 @@ export async function getFacultyAvailability(): Promise<{
     distinct: ["day", "startTime", "endTime"]
   })
 
+  // Merge every period definition into the teachable window of each day
+  const dayWindows = buildDayWindows(uniqueSlotDefs)
+
+  // Faculty who appear in at least one active timetable - used to let the UI narrow
+  // a 35-name list down to people who actually teach this term
+  const teachingFacultyIds = new Set(
+    allSlots.map(s => s.facultyId).filter((id): id is string => id !== null)
+  )
+
+  const facultyInfos: FacultyInfo[] = allFaculty.map(f => ({
+    id: f.id,
+    name: f.name,
+    email: f.email,
+    availability: f.availability as "Active" | "Away" | "Busy",
+    status: f.status,
+    hasScheduledSlots: teachingFacultyIds.has(f.id)
+  }))
+
   // Faculty-wise: show each faculty with their occupied slots and free slots
-  const facultyWise: FacultyWithSlots[] = allFaculty.map(faculty => {
+  const facultyWise: FacultyWithSlots[] = facultyInfos.map(faculty => {
     const occupiedSlots = allSlots
       .filter(slot => slot.facultyId === faculty.id)
       .map(slot => ({
@@ -142,77 +295,37 @@ export async function getFacultyAvailability(): Promise<{
       }))
 
     // Calculate free slots for this faculty
-    const occupiedSlotKeys = new Set(
-      occupiedSlots.map(s => `${s.day}-${s.startTime}-${s.endTime}`)
-    )
-
-    const freeSlots = uniqueSlotDefs
-      .filter(slotDef => !occupiedSlotKeys.has(`${slotDef.day}-${slotDef.startTime}-${slotDef.endTime}`))
-      .map(slotDef => ({
-        id: `free-${slotDef.day}-${slotDef.startTime}`,
-        startTime: slotDef.startTime,
-        endTime: slotDef.endTime,
-        slotTypeName: slotDef.slotType.name,
-        day: slotDef.day as DayOfWeek,
-        timetableName: "",
-        roomNumber: null,
-        subjectShortName: null,
-        subjectName: null,
-        batchName: null
-      }))
+    const freeSlots = computeFreeSlots(dayWindows, occupiedSlots)
 
     return {
-      id: faculty.id,
-      name: faculty.name,
-      email: faculty.email,
-      availability: faculty.availability as "Active" | "Away" | "Busy",
-      status: faculty.status,
+      ...faculty,
       occupiedSlots: sortByDayAndTime(occupiedSlots),
       freeSlots: sortByDayAndTime(freeSlots)
     }
   })
-
-  // Slot-wise: for each unique slot, show which faculty are free
-  const slotWise: SlotWithFreeFaculty[] = sortByDayAndTime(uniqueSlotDefs.map(slotDef => {
-    // Find faculty who are occupied during this slot
+  // Slot-wise: for each atomic period, show which faculty are free
+  const slotWise: SlotWithFreeFaculty[] = sortByDayAndTime(buildAtomicSlots(uniqueSlotDefs).map(slotDef => {
+    // Anyone whose booking overlaps this period is busy for it, even when the
+    // booking was defined on a different (longer or shorter) period grid
+    const defInterval = toInterval(slotDef.startTime, slotDef.endTime)
     const occupiedFacultyIds = allSlots
-      .filter(s =>
-        s.day === slotDef.day &&
-        s.startTime === slotDef.startTime &&
-        s.endTime === slotDef.endTime
-      )
+      .filter(s => {
+        if (s.day !== slotDef.day || !defInterval) return false
+        const slotInterval = toInterval(s.startTime, s.endTime)
+        return slotInterval !== null && intervalsOverlap(defInterval, slotInterval)
+      })
       .map(s => s.facultyId)
       .filter((id): id is string => id !== null)
 
     const occupiedFacultyIdsSet = new Set(occupiedFacultyIds)
 
-    const freeFaculty = allFaculty
-      .filter(f => !occupiedFacultyIdsSet.has(f.id))
-      .map(f => ({
-        id: f.id,
-        name: f.name,
-        email: f.email,
-        availability: f.availability as "Active" | "Away" | "Busy",
-        status: f.status
-      }))
-
-    const busyFaculty = allFaculty
-      .filter(f => occupiedFacultyIdsSet.has(f.id))
-      .map(f => ({
-        id: f.id,
-        name: f.name,
-        email: f.email,
-        availability: f.availability as "Active" | "Away" | "Busy",
-        status: f.status
-      }))
-
     return {
-      day: slotDef.day as DayOfWeek,
+      day: slotDef.day,
       startTime: slotDef.startTime,
       endTime: slotDef.endTime,
-      slotTypeName: slotDef.slotType.name,
-      freeFaculty,
-      busyFaculty
+      slotTypeName: "",
+      freeFaculty: sortFaculty(facultyInfos.filter(f => !occupiedFacultyIdsSet.has(f.id))),
+      busyFaculty: sortFaculty(facultyInfos.filter(f => occupiedFacultyIdsSet.has(f.id)))
     }
   }))
 
@@ -241,7 +354,7 @@ export async function getRoomAvailability(): Promise<{
   const allSlots = await prisma.timeSlot.findMany({
     where: {
       roomId: { not: null },
-      slotType: { name: { not: "Break" } },
+      slotType: { isBreak: false },
       timetable: { isActive: true }
     },
     include: {
@@ -256,7 +369,7 @@ export async function getRoomAvailability(): Promise<{
   // Get unique slot definitions (day + time combinations from active timetables)
   const uniqueSlotDefs = await prisma.timeSlot.findMany({
     where: {
-      slotType: { name: { not: "Break" } },
+      slotType: { isBreak: false },
       timetable: { isActive: true }
     },
     select: {
@@ -267,6 +380,9 @@ export async function getRoomAvailability(): Promise<{
     },
     distinct: ["day", "startTime", "endTime"]
   })
+
+  // Merge every period definition into the teachable window of each day
+  const dayWindows = buildDayWindows(uniqueSlotDefs)
 
   // Room-wise: show each room with its occupied slots and free slots
   const roomWise: RoomWithSlots[] = allRooms.map(room => {
@@ -286,24 +402,7 @@ export async function getRoomAvailability(): Promise<{
       }))
 
     // Calculate free slots for this room
-    const occupiedSlotKeys = new Set(
-      occupiedSlots.map(s => `${s.day}-${s.startTime}-${s.endTime}`)
-    )
-
-    const freeSlots = uniqueSlotDefs
-      .filter(slotDef => !occupiedSlotKeys.has(`${slotDef.day}-${slotDef.startTime}-${slotDef.endTime}`))
-      .map(slotDef => ({
-        id: `free-${slotDef.day}-${slotDef.startTime}`,
-        startTime: slotDef.startTime,
-        endTime: slotDef.endTime,
-        slotTypeName: slotDef.slotType.name,
-        day: slotDef.day as DayOfWeek,
-        timetableName: "",
-        roomNumber: null,
-        subjectShortName: null,
-        subjectName: null,
-        batchName: null
-      }))
+    const freeSlots = computeFreeSlots(dayWindows, occupiedSlots)
 
     return {
       id: room.id,
@@ -314,14 +413,15 @@ export async function getRoomAvailability(): Promise<{
   })
 
   // Slot-wise: for each unique slot, show which rooms are free
-  const slotWise: SlotWithFreeRooms[] = sortByDayAndTime(uniqueSlotDefs.map(slotDef => {
-    // Find rooms that are occupied during this slot
+  const slotWise: SlotWithFreeRooms[] = sortByDayAndTime(buildAtomicSlots(uniqueSlotDefs).map(slotDef => {
+    // A room is taken if any booking overlaps this period, whatever grid it came from
+    const defInterval = toInterval(slotDef.startTime, slotDef.endTime)
     const occupiedRoomIds = allSlots
-      .filter(s =>
-        s.day === slotDef.day &&
-        s.startTime === slotDef.startTime &&
-        s.endTime === slotDef.endTime
-      )
+      .filter(s => {
+        if (s.day !== slotDef.day || !defInterval) return false
+        const slotInterval = toInterval(s.startTime, s.endTime)
+        return slotInterval !== null && intervalsOverlap(defInterval, slotInterval)
+      })
       .map(s => s.roomId)
       .filter((id): id is string => id !== null)
 
@@ -342,10 +442,10 @@ export async function getRoomAvailability(): Promise<{
       }))
 
     return {
-      day: slotDef.day as DayOfWeek,
+      day: slotDef.day,
       startTime: slotDef.startTime,
       endTime: slotDef.endTime,
-      slotTypeName: slotDef.slotType.name,
+      slotTypeName: "",
       freeRooms,
       occupiedRooms
     }

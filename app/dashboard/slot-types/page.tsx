@@ -6,6 +6,7 @@ import { SlotTypeDialog } from "@/components/slot-type-dialog"
 import { DeleteDialog } from "@/components/delete-dialog"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Pencil, Trash2, Plus } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
@@ -13,6 +14,22 @@ import { Spinner } from "@/components/ui/spinner"
 interface SlotType {
   id: string
   name: string
+  isBreak: boolean
+  requiresSubject: boolean
+  requiresRoom: boolean
+  requiresFaculty: boolean
+}
+
+function requirementSummary(slotType: SlotType): string {
+  if (slotType.isBreak) return "No subject, room or faculty"
+  const required = [
+    slotType.requiresSubject && "subject",
+    slotType.requiresRoom && "room",
+    slotType.requiresFaculty && "faculty",
+  ].filter(Boolean)
+  return required.length > 0
+    ? "Requires " + required.join(", ")
+    : "Subject, room and faculty all optional"
 }
 
 function SlotTypesList({
@@ -39,7 +56,15 @@ function SlotTypesList({
       {slotTypes.map((slotType) => (
         <Card key={slotType.id}>
           <CardContent className="flex items-center justify-between p-4">
-            <div className="font-medium">{slotType.name}</div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="font-medium">{slotType.name}</span>
+                {slotType.isBreak && <Badge variant="secondary">Break</Badge>}
+              </div>
+              <p className="text-muted-foreground text-xs mt-0.5">
+                {requirementSummary(slotType)}
+              </p>
+            </div>
             <div className="flex gap-2">
               <Button
                 variant="ghost"

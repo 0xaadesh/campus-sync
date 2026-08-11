@@ -180,7 +180,7 @@ export async function getUserSchedule(): Promise<{
             roomNumber: slot.room?.number || null,
             facultyName: slot.faculty?.name || null,
             batchName: slot.batch?.name || null,
-            isBreak: !slot.subjectId && !slot.roomId
+            isBreak: slot.slotType.isBreak
           })
         }
       }

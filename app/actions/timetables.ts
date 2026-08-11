@@ -32,7 +32,7 @@ export type TimetableWithSlots = {
     startTime: string
     endTime: string
     subject: { id: string; name: string; shortName: string }
-    slotType: { id: string; name: string }
+    slotType: { id: string; name: string; isBreak: boolean; requiresSubject: boolean; requiresRoom: boolean; requiresFaculty: boolean }
     room: { id: string; number: string }
     faculty: { id: string; name: string }
   }[]
@@ -131,7 +131,7 @@ export async function getTimetables() {
         slots: {
           include: {
             subject: { select: { id: true, name: true, shortName: true } },
-            slotType: { select: { id: true, name: true } },
+            slotType: { select: { id: true, name: true, isBreak: true, requiresSubject: true, requiresRoom: true, requiresFaculty: true } },
             room: { select: { id: true, number: true } },
             faculty: { select: { id: true, name: true } },
             batch: { select: { id: true, name: true } }
@@ -167,7 +167,7 @@ export async function getTimetables() {
       slots: {
         include: {
           subject: { select: { id: true, name: true, shortName: true } },
-          slotType: { select: { id: true, name: true } },
+          slotType: { select: { id: true, name: true, isBreak: true, requiresSubject: true, requiresRoom: true, requiresFaculty: true } },
           room: { select: { id: true, number: true } },
           faculty: { select: { id: true, name: true } },
           batch: { select: { id: true, name: true } }
@@ -199,7 +199,7 @@ export async function getTimetable(id: string) {
       slots: {
         include: {
           subject: { select: { id: true, name: true, shortName: true } },
-          slotType: { select: { id: true, name: true } },
+          slotType: { select: { id: true, name: true, isBreak: true, requiresSubject: true, requiresRoom: true, requiresFaculty: true } },
           room: { select: { id: true, number: true } },
           faculty: { select: { id: true, name: true } },
           batch: { select: { id: true, name: true } }
@@ -299,6 +299,39 @@ export async function deleteTimetable(id: string) {
   }
 }
 
+// Resolve the subject/room/faculty a slot may carry from its slot type's rules.
+// Break types never carry them; other types require only what the type asks for.
+async function resolveSlotFields(data: TimeSlotData) {
+  const slotType = await prisma.slotType.findUnique({
+    where: { id: data.slotTypeId },
+    select: { name: true, isBreak: true, requiresSubject: true, requiresRoom: true, requiresFaculty: true }
+  })
+
+  if (!slotType) return { error: "Slot type not found" as const }
+
+  if (slotType.isBreak) {
+    return { fields: { subjectId: null, roomId: null, facultyId: null } }
+  }
+
+  if (slotType.requiresSubject && !data.subjectId) {
+    return { error: `Subject is required for ${slotType.name} slots` }
+  }
+  if (slotType.requiresRoom && !data.roomId) {
+    return { error: `Room is required for ${slotType.name} slots` }
+  }
+  if (slotType.requiresFaculty && !data.facultyId) {
+    return { error: `Faculty is required for ${slotType.name} slots` }
+  }
+
+  return {
+    fields: {
+      subjectId: data.subjectId || null,
+      roomId: data.roomId || null,
+      facultyId: data.facultyId || null
+    }
+  }
+}
+
 // Add slot to timetable
 export async function addTimeSlot(timetableId: string, data: TimeSlotData) {
   const user = await getCurrentUser()
@@ -320,6 +353,9 @@ export async function addTimeSlot(timetableId: string, data: TimeSlotData) {
     return { error: "Start time must be before end time" }
   }
 
+  const resolved = await resolveSlotFields(data)
+  if ("error" in resolved) return { error: resolved.error }
+
   try {
     await prisma.timeSlot.create({
       data: {
@@ -327,11 +363,9 @@ export async function addTimeSlot(timetableId: string, data: TimeSlotData) {
         day: data.day,
         startTime: data.startTime,
         endTime: data.endTime,
-        subjectId: data.subjectId || null,
         slotTypeId: data.slotTypeId,
-        roomId: data.roomId || null,
-        facultyId: data.facultyId || null,
-        batchId: data.batchId || null
+        batchId: data.batchId || null,
+        ...resolved.fields
       }
     })
     revalidatePath("/dashboard/timetables")
@@ -371,6 +405,9 @@ export async function updateTimeSlot(slotId: string, data: TimeSlotData) {
     return { error: "Start time must be before end time" }
   }
 
+  const resolved = await resolveSlotFields(data)
+  if ("error" in resolved) return { error: resolved.error }
+
   try {
     await prisma.timeSlot.update({
       where: { id: slotId },
@@ -378,11 +415,9 @@ export async function updateTimeSlot(slotId: string, data: TimeSlotData) {
         day: data.day,
         startTime: data.startTime,
         endTime: data.endTime,
-        subjectId: data.subjectId || null,
         slotTypeId: data.slotTypeId,
-        roomId: data.roomId || null,
-        facultyId: data.facultyId || null,
-        batchId: data.batchId || null
+        batchId: data.batchId || null,
+        ...resolved.fields
       }
     })
     revalidatePath("/dashboard/timetables")
@@ -475,7 +510,7 @@ export async function getAllSubjects() {
 // Get all slot types (for dropdown)
 export async function getAllSlotTypes() {
   return prisma.slotType.findMany({
-    select: { id: true, name: true },
+    select: { id: true, name: true, isBreak: true, requiresSubject: true, requiresRoom: true, requiresFaculty: true },
     orderBy: { name: "asc" }
   })
 }

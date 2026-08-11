@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { cn, formatTime } from "@/lib/utils"
+import { nameInitials } from "@/lib/person-name"
 import { Users, DoorOpen, Clock, User, Calendar, Search } from "lucide-react"
 import type {
   FacultyWithSlots,
@@ -76,7 +77,7 @@ function FacultyAvatar({ faculty, size = "md" }: { faculty: FacultyInfo; size?: 
         "bg-primary/10 text-primary flex items-center justify-center rounded-full font-medium",
         sizeClasses
       )}>
-        {faculty.name.charAt(0).toUpperCase()}
+        {nameInitials(faculty.name)}
       </div>
       <span
         className={cn(
@@ -230,8 +231,19 @@ function FacultyWiseView({ data }: { data: FacultyWithSlots[] }) {
 
 function SlotWiseFacultyView({ data }: { data: SlotWithFreeFaculty[] }) {
   const [selectedDay, setSelectedDay] = React.useState<DayOfWeek>(getTodayDayOfWeek)
+  const [availableOnly, setAvailableOnly] = React.useState(false)
+  const [teachingOnly, setTeachingOnly] = React.useState(false)
 
-  const slotsForDay = data.filter(s => s.day === selectedDay)
+  // Both filters narrow who counts as free; the busy list is shown as-is
+  const slotsForDay = data
+    .filter(s => s.day === selectedDay)
+    .map(slot => ({
+      ...slot,
+      freeFaculty: slot.freeFaculty.filter(f =>
+        (!availableOnly || f.availability === "Active") &&
+        (!teachingOnly || f.hasScheduledSlots)
+      )
+    }))
 
   return (
     <div className="space-y-4">
@@ -247,6 +259,30 @@ function SlotWiseFacultyView({ data }: { data: SlotWithFreeFaculty[] }) {
             {DAY_ABBREV[day]}
           </Button>
         ))}
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-6">
+        <div className="flex items-center gap-2">
+          <Switch
+            id="slot-available-only"
+            checked={availableOnly}
+            onCheckedChange={setAvailableOnly}
+          />
+          <Label htmlFor="slot-available-only" className="text-sm">
+            Active only
+          </Label>
+        </div>
+        <div className="flex items-center gap-2">
+          <Switch
+            id="slot-teaching-only"
+            checked={teachingOnly}
+            onCheckedChange={setTeachingOnly}
+          />
+          <Label htmlFor="slot-teaching-only" className="text-sm">
+            Teaching staff only
+          </Label>
+        </div>
       </div>
 
       {slotsForDay.length === 0 ? (
@@ -280,6 +316,9 @@ function SlotWiseFacultyView({ data }: { data: SlotWithFreeFaculty[] }) {
                         <div key={faculty.id} className="flex items-center gap-2 bg-muted/50 rounded-full pl-1 pr-3 py-1">
                           <FacultyAvatar faculty={faculty} size="sm" />
                           <span className="text-sm">{faculty.name}</span>
+                          {faculty.availability !== "Active" && (
+                            <span className="text-muted-foreground text-xs">{faculty.availability}</span>
+                          )}
                         </div>
                       ))}
                     </div>

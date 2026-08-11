@@ -61,12 +61,16 @@ model Room {
 }
 
 model SlotType {
-  id          String   @id @default(cuid())
-  name        String   @unique
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  timeSlots   TimeSlot[]
-  preferences SlotTypePreference[]
+  id              String   @id @default(cuid())
+  name            String   @unique
+  isBreak         Boolean  @default(false)
+  requiresSubject Boolean  @default(true)
+  requiresRoom    Boolean  @default(true)
+  requiresFaculty Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  timeSlots       TimeSlot[]
+  preferences     SlotTypePreference[]
 }
 
 model Batch {

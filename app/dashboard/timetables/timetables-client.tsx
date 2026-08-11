@@ -47,7 +47,7 @@ const DAYS_OF_WEEK: DayOfWeek[] = ["Monday", "Tuesday", "Wednesday", "Thursday",
 const SHORT_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 
 type Subject = { id: string; name: string; shortName: string }
-type SlotType = { id: string; name: string }
+type SlotType = { id: string; name: string; isBreak: boolean; requiresSubject: boolean; requiresRoom: boolean; requiresFaculty: boolean }
 type Room = { id: string; number: string }
 type Faculty = { id: string; name: string; email: string }
 type Group = { id: string; title: string; defaultRole: string }
