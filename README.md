@@ -241,8 +241,6 @@ cd campus-sync
 2. **Install dependencies**
 
 ```bash
-bun install
-# or
 npm install
 ```
 

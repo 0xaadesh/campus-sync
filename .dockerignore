@@ -1,14 +1,32 @@
+# Never copy host-built artifacts into the image: node_modules carries
+# platform-specific native binaries (Prisma engines) built for Windows.
 node_modules
 .next
+out
+build
+
+# Version control and local tooling
 .git
 .gitignore
-.env
-.env.*
-!.env.example
-Dockerfile
-docker-compose.yml
-README.md
 .vscode
 .cursor
+.claude
+
+# Secrets stay out of the image; compose injects them at runtime
+.env
+.env.*
+
+# Docs and editor noise
 *.md
-package-lock.json
+README.md
+
+# The image itself
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+
+# Local scratch
+*.log
+*.tsbuildinfo
+coverage
