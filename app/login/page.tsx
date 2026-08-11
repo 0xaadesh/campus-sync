@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import { useSearchParams } from "next/navigation"
 import { useFormStatus } from "react-dom"
 import Link from "next/link"
 import { loginAction } from "@/app/actions/auth"
@@ -23,9 +24,12 @@ function SubmitButton() {
   )
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const [state, formAction] = React.useActionState(loginAction, null)
-  const [username, setUsername] = React.useState("")
+  const searchParams = useSearchParams()
+  const [username, setUsername] = React.useState(
+    () => (searchParams.get("u") ?? "").replace(/@.*$/, "")
+  )
 
   // Create a wrapped action that appends the domain
   const handleSubmit = async (formData: FormData) => {
@@ -107,5 +111,13 @@ export default function LoginPage() {
         </CardContent>
       </Card>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <LoginForm />
+    </React.Suspense>
   )
 }
