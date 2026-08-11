@@ -2,7 +2,7 @@
 
 import { auth } from "@/auth"
 import { prisma } from "@/lib/prisma"
-import { DayOfWeek } from "@prisma/client"
+import { DayOfWeek, Prisma } from "@prisma/client"
 import { getActivePreferences } from "./preferences"
 
 export interface ScheduleSlot {
@@ -65,6 +65,34 @@ function getDayOfWeekFromDate(dateStr: string): DayOfWeek {
   return mapping[dayIndex]
 }
 
+const SLOT_INCLUDE = {
+  subject: true,
+  slotType: true,
+  room: true,
+  batch: true,
+  faculty: true,
+} satisfies Prisma.TimeSlotInclude
+
+type SlotWithRelations = Prisma.TimeSlotGetPayload<{
+  include: typeof SLOT_INCLUDE
+}>
+
+function toScheduleSlot(slot: SlotWithRelations): ScheduleSlot {
+  return {
+    id: slot.id,
+    day: slot.day,
+    startTime: slot.startTime,
+    endTime: slot.endTime,
+    subjectName: slot.subject?.name || null,
+    subjectShortName: slot.subject?.shortName || null,
+    slotTypeName: slot.slotType.name,
+    roomNumber: slot.room?.number || null,
+    facultyName: slot.faculty?.name || null,
+    batchName: slot.batch?.name || null,
+    isBreak: slot.slotType.isBreak,
+  }
+}
+
 export async function getUserSchedule(): Promise<{
   weeklySchedule: WeeklySchedule
   todayDate: string
@@ -103,7 +131,27 @@ export async function getUserSchedule(): Promise<{
 
   const groupIds = userGroups.map(g => g.groupId)
 
-  if (groupIds.length > 0) {
+  const isTeachingRole = userRole === "HOD" || userRole === "Faculty"
+
+  if (isTeachingRole) {
+    // Faculty and HOD teach across batches and departments, so their own day is
+    // defined by the slots assigned to them, not by the groups they belong to.
+    // Going through group membership would hide the schedule of any faculty
+    // member who was never added to a student group.
+    const facultySlots = await prisma.timeSlot.findMany({
+      where: {
+        facultyId: userId,
+        timetable: { isActive: true }
+      },
+      include: SLOT_INCLUDE,
+      orderBy: [
+        { day: "asc" },
+        { startTime: "asc" }
+      ]
+    })
+
+    allSlots = facultySlots.map(toScheduleSlot)
+  } else if (groupIds.length > 0) {
     // Get timetables assigned to user's groups (only active ones)
     const timetableGroups = await prisma.timetableGroup.findMany({
       where: {
@@ -114,13 +162,7 @@ export async function getUserSchedule(): Promise<{
         timetable: {
           include: {
             slots: {
-              include: {
-                subject: true,
-                slotType: true,
-                room: true,
-                batch: true,
-                faculty: true
-              },
+              include: SLOT_INCLUDE,
               orderBy: [
                 { day: "asc" },
                 { startTime: "asc" }
@@ -134,54 +176,30 @@ export async function getUserSchedule(): Promise<{
     // Collect all slots from all timetables
     const slotsMap = new Map<string, ScheduleSlot>()
 
-    // Get student preferences for filtering (only for students)
-    let enabledSlotTypeIds: string[] | null = null
-    let selectedBatchIds: string[] | null = null
-
-    if (userRole === "Student") {
-      const prefs = await getActivePreferences(userId)
-      enabledSlotTypeIds = prefs.enabledSlotTypeIds
-      selectedBatchIds = prefs.selectedBatchIds
-    }
+    // Get student preferences for filtering
+    const prefs = await getActivePreferences(userId)
+    const enabledSlotTypeIds = prefs.enabledSlotTypeIds
+    const selectedBatchIds = prefs.selectedBatchIds
 
     for (const tg of timetableGroups) {
       for (const slot of tg.timetable.slots) {
-        // For faculty/HOD, only show slots where they are assigned
-        // For students, apply preference filters
         let shouldInclude = true
 
-        if (userRole === "HOD" || userRole === "Faculty") {
-          shouldInclude = slot.facultyId === userId
-        } else {
-          // Student filtering
-          // Check slot type preference
-          if (enabledSlotTypeIds !== null && !enabledSlotTypeIds.includes(slot.slotTypeId)) {
-            shouldInclude = false
-          }
+        // Check slot type preference
+        if (enabledSlotTypeIds !== null && !enabledSlotTypeIds.includes(slot.slotTypeId)) {
+          shouldInclude = false
+        }
 
-          // Check batch preference (if user has batch preferences set)
-          // Only filter if the slot has a batch AND user has batch preferences
-          if (shouldInclude && selectedBatchIds !== null && slot.batchId) {
-            if (!selectedBatchIds.includes(slot.batchId)) {
-              shouldInclude = false
-            }
+        // Check batch preference (if user has batch preferences set)
+        // Only filter if the slot has a batch AND user has batch preferences
+        if (shouldInclude && selectedBatchIds !== null && slot.batchId) {
+          if (!selectedBatchIds.includes(slot.batchId)) {
+            shouldInclude = false
           }
         }
 
         if (shouldInclude && !slotsMap.has(slot.id)) {
-          slotsMap.set(slot.id, {
-            id: slot.id,
-            day: slot.day,
-            startTime: slot.startTime,
-            endTime: slot.endTime,
-            subjectName: slot.subject?.name || null,
-            subjectShortName: slot.subject?.shortName || null,
-            slotTypeName: slot.slotType.name,
-            roomNumber: slot.room?.number || null,
-            facultyName: slot.faculty?.name || null,
-            batchName: slot.batch?.name || null,
-            isBreak: slot.slotType.isBreak
-          })
+          slotsMap.set(slot.id, toScheduleSlot(slot))
         }
       }
     }
