@@ -128,7 +128,6 @@ export async function updateBatchPreferences(
 
     revalidatePath("/dashboard")
     revalidatePath("/dashboard/profile")
-    revalidatePath("/dashboard/lecture-summaries")
     return { success: true }
   } catch (error) {
     console.error("Failed to update batch preferences:", error)

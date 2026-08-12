@@ -12,7 +12,6 @@ import { DayOfWeek } from "@prisma/client"
 interface ScheduleCarouselProps {
   weeklySchedule: WeeklySchedule
   todayDate: string
-  slotSummaries?: Record<string, string[]> // slotId -> array of date strings with summaries
   dayEvents?: Record<string, DayEvent[]> // date string -> events for that date
 }
 
@@ -81,7 +80,7 @@ function generateDates(centerDate: Date, daysBefore: number, daysAfter: number):
   return dates
 }
 
-export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}, dayEvents = {} }: ScheduleCarouselProps) {
+export function ScheduleCarousel({ weeklySchedule, todayDate, dayEvents = {} }: ScheduleCarouselProps) {
   const today = React.useMemo(() => new Date(todayDate), [todayDate])
 
   // Track the selected date
@@ -327,9 +326,6 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
           </Card>
         ) : (
           currentSlots.map((slot) => {
-            // Check if this slot has a summary for the selected date
-            const hasSummary = slotSummaries[slot.id]?.includes(selectedDateStr)
-
             return (
               <Card
                 key={slot.id}
@@ -351,11 +347,6 @@ export function ScheduleCarousel({ weeklySchedule, todayDate, slotSummaries = {}
                         <Badge variant="secondary" className="shrink-0">
                           <Layers className="h-3 w-3 mr-1" />
                           {slot.batchName}
-                        </Badge>
-                      )}
-                      {hasSummary && (
-                        <Badge variant="success" className="shrink-0">
-                          Summarized
                         </Badge>
                       )}
                     </div>

@@ -1,7 +1,6 @@
 import {
   CalendarDays,
   CalendarRange,
-  ClipboardList,
   Clock4,
   DoorOpen,
   Users,
@@ -43,21 +42,14 @@ const FEATURES = [
     icon: Clock4,
     title: "Availability",
     description: "Who's free, when. Overlaps caught before you publish.",
-    span: "md:col-span-3",
+    span: "md:col-span-5",
   },
   {
     index: "05",
     icon: DoorOpen,
     title: "Rooms & subjects",
     description: "Rooms, subjects, batches and slot types in one place.",
-    span: "md:col-span-5",
-  },
-  {
-    index: "06",
-    icon: ClipboardList,
-    title: "Lecture summaries",
-    description: "What was covered, attached to the slot it belongs to.",
-    span: "md:col-span-4",
+    span: "md:col-span-7",
   },
 ]
 

@@ -58,11 +58,6 @@ export const moreNavItems: readonly NavItem[] = [
     href: "/dashboard/groups",
     icon: Users,
   },
-  {
-    title: "Lecture Summaries",
-    href: "/dashboard/lecture-summaries",
-    icon: BookOpen,
-  },
 ] as const
 
 export const hodConfigItems: readonly NavItem[] = [

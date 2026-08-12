@@ -35,7 +35,6 @@
     "radix-ui": "^1.4.3",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "react-markdown": "^10.1.0",
     "shadcn": "^3.6.2",
     "tailwind-merge": "^3.4.0",
     "three": "^0.182.0",
@@ -44,8 +43,6 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^3.0.0",
-    "@types/hast": "^3.0.4",
-    "@types/mdast": "^4.0.4",
     "@types/node": "^20",
     "@types/nodemailer": "^7.0.5",
     "@types/react": "^19",
